@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script type="text/javascript">
+  
+    window.onload = function(){
+        var targetContainer = document.getElementById("target_div");
+        var eventSource = new EventSource("/sse-testevents")
+        eventSource.onmessage = function(e) {
+          var entry = document.createElement('li');
+          entry.innerHTML = e.data;
+          targetContainer.appendChild(entry);//.innerHTML = e.data;
+        };
+    };
+  </script>
+</head>
+
+<body>
+  <div id="target_div">Watch this space...</div>
+</body>
+</html>

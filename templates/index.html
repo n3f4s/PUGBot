@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+  <!--Import Google Icon Font-->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+      
+  <!--Import materialize.css-->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+
+  <!--Import materialize.js-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+  <!-- Vue development version, includes helpful console warnings -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  
+  <!--Let browser know website is optimized for mobile-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  
+  <title>Puggies</title>
+  
+  <style>
+    body {
+      background-color: #fff;
+    }
+    
+    #app {
+      text-align: center;
+      margin-top: 0;
+      padding: 0;
+    }
+    
+    .dragged {
+      opacity: 0.5;
+    }
+
+    .hovered {
+      opacity: 0.3;
+    }
+    
+    .drop-zone {
+      padding: 0px;
+      
+    }
+    
+    .player-card {
+      background-color: #876;
+      color: #fff;
+      height: 120px;
+      margin-bottom: 0px;
+      padding: 0px;
+      border-radius: 10px;
+    }
+   
+    .player-card img {
+      height: 40px;
+    }
+    
+    .player-card.dummy {
+      background-color: #eee;
+      color: #000;
+    }
+
+  </style>
+  
+
+  <script type="text/javascript">
+  
+    const bus = new Vue({
+      data: {
+        clientId: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+        busSource: "/lobbyupdates",
+        busTarget: "/lobbyupdates"
+      },
+      methods: {
+        send(eventName, event) {
+            this.$emit(eventName, event);
+            
+            // send event to server
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", this.busTarget, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify({event: eventName,
+                                     sourceID: this.clientId,
+                                     data: event }));
+            //TODO: Add additional authentication so attacker can't just spoof
+            //      messages to server with known clientID
+        },
+        
+        processMessage(msg) {
+          const msgdata = JSON.parse(msg);
+          if (msgdata.sourceID == this.clientId) {
+          } else {
+            this.$emit(msgdata.event, msgdata.data);
+          }
+        }
+      },
+      
+      created() {
+        var eventSource = new EventSource(this.busSource)
+        eventSource.onmessage = function(e) {
+          // TODO: Check message source
+          //        Sanitize data
+          bus.processMessage(e.data);
+        };
+      }
+      
+    });
+
+    window.addEventListener('load', function () {
+      var app = new Vue({
+        el: "#app",
+        data: {
+          players: %% lobbyPlayers|tojson|safe %%,
+          teams: ["red", "blue"],
+          roles: ["tank", "damage", "support"],
+        },
+        
+        methods: {
+          movePlayer(evt) {
+            // TODO: Change this to use literals rather than raw event
+            const playerID = evt.sourceID;//evt.dataTransfer.getData("playerID");
+            const player = this.players.find((player) => player.id == playerID);
+            const location = evt.targetGroup; //dataTransfer.getData("targetName");
+            player.group = location;
+          },
+          
+          swapPlayer(evt) {
+            // TODO: Change this to use literals rather than raw event
+            const playerID = evt.sourceID;//evt.dataTransfer.getData("playerID");
+            const player = this.players.find((player) => player.id == playerID);
+            
+            const targetID = evt.targetID;//dataTransfer.getData("targetID");
+            const targplayer = this.players.find((player) => player.id == targetID);
+            
+            const group1 = player.group;
+            player.group = targplayer.group;
+            targplayer.group = group1;
+          }
+          
+        },
+
+        created() {
+          bus.$on('move-player', (evt) => { this.movePlayer(evt); });
+          bus.$on('swap-player', (evt) => { this.swapPlayer(evt); });
+        }
+      });
+    });
+    
+    Vue.component('player-card', {
+      props: ['player', 'role'],
+      
+      data() {
+	      return {
+          isDragged: false,
+          isHovered: false
+        }
+      },
+      
+      computed: {
+        roles() {
+          if (Array.isArray(this.role)) {
+            return this.role;
+          } else if (Object.prototype.toString.call(this.role) === '[object String]') {
+            return [ this.role ];
+          } else {
+            return [ "tank", "damage", "support" ];
+          }
+        }
+      },
+
+      methods: {
+        startDrag(evt, player) {
+          evt.dataTransfer.dropEffect = "move";
+          evt.dataTransfer.effectAllowed = "move";
+          evt.dataTransfer.setData("playerID", player.id);
+
+          this.isDragged = true;
+        },
+        endDrag() { this.isDragged = false; },
+        enterDrag(evt) { this.isHovered = true; evt.stopPropagation(); },
+        exitDrag(evt) { this.isHovered = false; evt.stopPropagation(); },
+        onDrop(evt, player) {
+          evt.preventDefault();
+          this.isHovered = false;
+
+          // TODO: actually check if dropped item is a player
+          const sourceID = evt.dataTransfer.getData("playerID"); 
+          bus.send('swap-player', { sourceID: sourceID, targetID: player.id });
+          evt.stopPropagation();
+        },
+      },
+        
+      template: `
+        <div
+          :class="['card-panel', 'hoverable', 'player-card', {dragged: isDragged}, {hovered: isHovered}]"
+          draggable
+          @dragstart="startDrag($event, player)"
+          @dragend="endDrag()"
+          @dragenter="enterDrag($event)"
+          @dragexit="exitDrag($event)"
+          @drop="onDrop($event, player)"
+          @dragover.prevent>
+          
+          <div class="row center">
+            <div class="col m4">{{ player.title }} <br>  {{ player.profileData.tag }}</div>
+          </div> 
+          <div class="row center">
+            <div v-for="roled in roles" class= "col m4" :class="(roles.length == 3) ? '' : 'offset-m4'">
+              <div class="valign-wrapper center-align">
+                <img class="responsive-img" :src="'/media/roles/' + roled + '.png'" />
+              
+                {{ player.profileData.overview[roled].sr }}
+                <br>
+                {{ player.profileData.overview[roled].peakSr }}
+              </div>
+            </div>
+          </div> 
+          
+        </div> `
+    })
+    
+    
+    Vue.component('player-group', {
+      props: {
+        groupId: { type: String, required: true },
+        name: { type: String, default: function () { return this.groupId; } }, // Bit of a hack...
+        players: { type: Array, required: true },
+        role: { },
+        maxPlayers: { type: Number, default: 0 }
+      },
+
+      data() {
+	      return {
+          isHovered: false
+        }
+      },
+      
+      computed: {
+        playerGroup() {
+          //Not sure if we should pass all players, or just that group
+          return this.players.filter((player) => player.group === this.groupId);
+        },
+        emptySlots() { return this.maxPlayers ? this.maxPlayers - this.playerGroup.length : 1; }
+      },
+          
+      methods: {
+        enterDrag() { this.isHovered = true; },
+        exitDrag() { this.isHovered = false; },
+        onDrop(evt) {
+          evt.preventDefault();
+          this.isHovered = false;
+
+          // TODO: actually check if dropped item is a player
+          // And make fired event a bit nicer... 
+          if ((this.maxPlayers == 0) || (this.emptySlots > 0)) {
+            //evt.targetName = this.groupId; // setData doesn't work with drop.....
+            //bus.send('move-player', evt)
+            const sourceID = evt.dataTransfer.getData("playerID"); 
+            bus.send('move-player', { sourceID: sourceID, targetGroup: this.groupId });
+            evt.stopPropagation(); // prevent event being caught by container
+          } else {
+             // TODO: replace with bus err
+             console.log("ERR: Position already full", );
+          }
+        },
+      },
+      
+      template: `
+      <div
+        :class="['drop-zone', {hovered: isHovered}]"
+        @dragenter="enterDrag()"
+        @dragexit="exitDrag()"
+        @drop="onDrop($event)"
+        @dragover.prevent>
+        <player-card
+          v-for="playerd in playerGroup"
+          :key="playerd.title"
+          :player="playerd"
+          :role="role"
+          @dragenter="exitDrag()"
+          @dragexit="enterDrag()">
+        </player-card>
+
+        <div class="card-panel player-card dummy" v-if="maxPlayers" v-for="n in emptySlots"> {{ name }} {{n}} </div>
+        <div class="card-panel player-card dummy" v-else> ... {{ name }} ... </div>
+      </div>
+      `
+    })
+  </script>
+  
+</head>
+
+<body>
+
+  <div class = "row center"><img class="col m1" src="media/icon.jpg" /></div>
+  
+  <div id="app" class = "row center">
+      <div class="col m3">
+        <player-group group-id="waiting" :players="players" ></player-group>
+      </div>
+      
+      
+      <div v-for="team in teams" class="col m3" :class="'team-'+team" >
+         {{ team }}
+         <player-group v-for="role in roles" :group-id="team+'.'+role" :team="team" :role="role" :players="players" :max-players="2"></player-group>
+      </div>
+
+      
+    </div>
+  </div>
+
+</body>
+</html>
