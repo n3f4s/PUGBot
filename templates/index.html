@@ -24,6 +24,19 @@
       background-color: #fff;
     }
     
+    table {
+      border: 0px;
+      padding:0; 
+      margin:0;
+    }
+    
+    td {
+      border: 0px;
+      padding:0; 
+      margin:0;
+      border-collapse: collapse;
+    }
+    
     #app {
       text-align: center;
       margin-top: 0;
@@ -47,40 +60,107 @@
       background-color: #876;
       color: #fff;
       height: 120px;
-      margin: 0px;
+      margin-bottom: 10px;
       padding: 0px;
       border-radius: 10px;
     }
    
-    .player-card img {
-      width: 20px; 
-    }
-    
     .player-card.dummy {
       background-color: #eee;
       color: #000;
     }
-
-  </style>
-  
-  <style>
-    .responsive-component {
-      height: 100px;
-      background: red;
+    
+    .player-card .card-header {
+      height: 40px;
     }
-
-    /* Applied when the component is less than 800px wide. */
-    .responsive-component.small {
-      background: green;
+    
+    .role-card {
+      background-color: #654;
+      padding: 0px;
+      border-radius: 5px;
+      height: 70px;
     }
-
-    /* Applied when the component is less than 400px wide. */
-    .responsive-component.tiny {
-      background: blue;
+    
+    .role-card .role-icon {
+      position: absolute;
+      width: 30%;
+      top: 5%;
+      left: 5%;
+      transform: translate(-50%,-50%);
     }
+    
+    .role-card.medium .role-icon {
+      opacity: 0.5;
+      filter: invert(100%);
+      width: 40px;
+      top: 50%;
+      left: 30px;
+      transform: translate(-50%,-50%);
+    }
+    
+    .role-card.large .role-icon {
+      opacity: 0.5;
+      filter: invert(100%);
+      width: 60px;
+      top: 50%;
+      left: 40px;
+      transform: translate(-50%,-50%);
+    }
+    
+    .role-card .role-sr {
+      display: inline-block;
+      vertical-align: top;
+      margin-left: 25%;
+      padding: 0px;
+    }
+    
+    .role-card.large .role-sr {
+      margin-left: 80px;
+    }
+    
+    .role-card .most-played {
+      display: inline-block;
+      vertical-align: top;
+      margin: 0px;
+      padding: 0px;
+    }
+    
+    .role-card.tiny .most-played {
+      display: none;
+    }
+    
+    .role-card.small .most-played {
+      display: none;
+    }
+    
+    .role-card .most-played img {
+      margin: auto;
+      width: 30px;
+    }
+    
+    .role-card.large .most-played img {
+      width: 50px;
+    }
+    
+
   </style>
   
   <script type="text/javascript">
+  
+    // https://stackoverflow.com/questions/27078285/simple-throttle-in-js
+    function throttle (callback, limit, immediate, trailing) {
+      var waiting = false;                    // Initially, we're not waiting
+      return function () {                    // We return a throttled function
+        if (!waiting) {                       // If we're not waiting
+          callback.apply(this, arguments);    // Execute users function
+          waiting = true;                     // Prevent future invocations
+          setTimeout(function () {            // After a period of time
+            waiting = false;                  // And allow future invocations
+          }, limit);
+        }
+      }
+    }
+
     //https://davidwalsh.name/javascript-debounce-function
     // Returns a function, that, as long as it continues to be invoked, will not
     // be triggered. The function will be called after it stops being called for
@@ -118,7 +198,7 @@
           (!process.server && (this.breakpoints || this.$options.breakpoints))
         ) {
           this.$nextTick(() => {
-            const handleResize = debounce(entries => {
+            const handleResize = throttle(entries => {
               const cr = entries[0].contentRect;
               this.el.width = cr.width;
               this.el.height = cr.height;
@@ -130,7 +210,7 @@
               for (const breakpoint in conds) {
                 this.$set(this.el.is, breakpoint, conds[breakpoint](this.el));
               }
-            }, 200, true, true);
+            }, 100, true, true);
 
             const observer = new ResizeObserver(handleResize);
             if (this.$el instanceof Element) {
@@ -174,7 +254,7 @@
     const ResponsiveDirective = {
       inserted(el, conds) {
         if (typeof process === "undefined" || !process.server) {
-          const handleResize = debounce(entries => {
+          const handleResize = throttle(entries => {
             const cr = entries[0].contentRect;
             for (const breakpoint in conds.value) {
               if (conds.value[breakpoint](cr)) {
@@ -183,7 +263,7 @@
                 el.classList.remove(breakpoint);
               }
             }
-          }, 200, true, true);
+          }, 100, true, true);
 
           const observer = new ResizeObserver(handleResize);
           observer.observe(el);
@@ -198,6 +278,7 @@
     }*/
   </script>
 
+  
   <script type="text/javascript">
   
     const bus = new Vue({
@@ -209,6 +290,7 @@
       methods: {
         send(eventName, event) {
             this.$emit(eventName, event);
+            console.log(eventName);
             
             // send event to server
             var xhr = new XMLHttpRequest();
@@ -241,6 +323,7 @@
       
     });
 
+    
     window.addEventListener('load', function () {
       var app = new Vue({
         el: "#app",
@@ -270,16 +353,99 @@
             const group1 = player.group;
             player.group = targplayer.group;
             targplayer.group = group1;
-          }
+          },
+          
+          playerJoin(evt) {
+            // TODO: Change this to use literals rather than raw event
+            const playerData = evt.playerData;
+            this.players.push(playerData);
+          },
+          
+          playerLeave(evt) {
+            // TODO: Change this to use literals rather than raw event
+            const playerID = evt.targetID;
+            var i = this.players.length;
+            while (i--) {
+              if (this.players[i].id == playerID) this.players.splice(i, 1);
+            }
+          },
           
         },
 
         created() {
           bus.$on('move-player', (evt) => { this.movePlayer(evt); });
           bus.$on('swap-player', (evt) => { this.swapPlayer(evt); });
+          bus.$on('player-join', (evt) => { this.playerJoin(evt); });
+          bus.$on('player-leave', (evt) => { this.playerLeave(evt); });
         }
       });
     });
+    
+        
+    Vue.component('player-group', {
+      props: {
+        groupId: { type: String, required: true },
+        name: { type: String, default: function () { return this.groupId; } }, // Bit of a hack...
+        players: { type: Array, required: true },
+        role: { },
+        maxPlayers: { type: Number, default: 0 }
+      },
+
+      data() {
+	      return {
+          isHovered: false
+        }
+      },
+      
+      computed: {
+        playerGroup() {
+          //Not sure if we should pass all players, or just that group
+          return this.players.filter((player) => player.group === this.groupId);
+        },
+        emptySlots() { return this.maxPlayers ? this.maxPlayers - this.playerGroup.length : 1; }
+      },
+      
+      template: `
+      <div
+        :class="['drop-zone', {'z-depth-5': isHovered}]"
+        @dragenter="enterDrag()"
+        @dragexit="exitDrag()"
+        @drop="onDrop($event)"
+        @dragover.prevent>
+        <player-card
+          v-for="playerd in playerGroup"
+          :key="playerd.title"
+          :player="playerd"
+          :role="role"
+          @dragenter="exitDrag()"
+          @dragexit="enterDrag()">
+        </player-card>
+
+        <div class="card-panel player-card dummy" v-if="maxPlayers" v-for="n in emptySlots"> {{ name }} {{n}} </div>
+        <div class="card-panel player-card dummy" v-else> ... {{ name }} ... </div>
+      </div> `,
+          
+      methods: {
+        enterDrag() { this.isHovered = true; },
+        exitDrag() { this.isHovered = false; },
+        onDrop(evt) {
+          evt.preventDefault();
+          this.isHovered = false;
+
+          // TODO: actually check if dropped item is a player
+          if ((this.maxPlayers == 0) || (this.emptySlots > 0)) {
+            const sourceID = evt.dataTransfer.getData("playerID"); 
+            bus.send('move-player', { sourceID: sourceID, targetGroup: this.groupId });
+            evt.stopPropagation(); // prevent event being caught by container
+          } else {
+             // TODO: replace with bus err
+             console.log("ERR: Position already full", );
+          }
+        },
+      }
+      
+    });
+
     
     Vue.component('player-card', {
       props: {
@@ -306,13 +472,44 @@
         }
       },
       
-      mixins: [ResponsiveMixin],
-      
-      breakpoints: {
-        tiny: el => el.width < 200,
-        small: el => el.width < 400,
-        medium: el => el.width < 600
-      },
+      template: `
+        <div
+          :class="[
+            'card-panel',
+            'hoverable',
+            'player-card',
+            {dragged: isDragged},
+            {hovered: isHovered}
+          ]"
+          draggable
+          @dragstart="startDrag($event, player)"
+          @dragend="endDrag()"
+          @dragenter="enterDrag($event)"
+          @dragexit="exitDrag($event)"
+          @drop="onDrop($event, player)"
+          @dragover.prevent>
+
+          <div class="row">
+            <div class="col m12 card-header">{{ player.profileData.tag }}{{ player.title }} </div>
+            
+            <div class="col m12">
+              <div style="padding-right: 10px">
+                <table
+                  style="table-layout: fixed; width: 100%;"
+                  border="0"
+                  cellspacing="0"
+                  cellpadding="0">
+                  <td v-for="roled in roles" style="padding-left: 10px;">
+                    <role-card
+                      :role="roled"
+                      :role-data="player.profileData.overview[roled]">
+                    </role-card>
+                  </td>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div> `,
 
       methods: {
         startDrag(evt, player) {
@@ -334,106 +531,74 @@
           bus.send('swap-player', { sourceID: sourceID, targetID: player.id });
           evt.stopPropagation();
         },
+        testplayerremove(player) { bus.send('player-leave', { targetID: player.id }); },
+        testplayerclone(player) {
+          var clone = Object.assign({}, player);
+          clone.id = "ARRRRRR";
+          bus.send('player-join', { playerData: clone });
+        },
       },
         
-      template: `
-        <div
-          :class="['card-panel',
-                   'hoverable',
-                   'player-card',
-                   {dragged: isDragged},
-                   {hovered: isHovered},
-                   {small: el.is.small}]"
-          draggable
-          @dragstart="startDrag($event, player)"
-          @dragend="endDrag()"
-          @dragenter="enterDrag($event)"
-          @dragexit="exitDrag($event)"
-          @drop="onDrop($event, player)"
-          @dragover.prevent>
-          
-          <div class="row">
-            <div class="col m12"> {{ el.width }} {{ player.profileData.tag }}{{ player.title }} </div>
-            
-            <table class="col m10 offset-m1" style="table-layout : fixed;">
-              <td v-for="roled in roles" class="center-align hoverable z-depth-1">
-                  <img class="responsive-img" :src="'/media/roles/' + roled + '.png'" style="float: left;" />
-                  {{ player.profileData.overview[roled].sr }}
-                  <br />
-                  {{ player.profileData.overview[roled].peakSr }}
-              </td>
-            </table>
-          </div>
-        </div> `
-    })
+    });
     
     
-    Vue.component('player-group', {
+    Vue.component('role-card', {
       props: {
-        groupId: { type: String, required: true },
-        name: { type: String, default: function () { return this.groupId; } }, // Bit of a hack...
-        players: { type: Array, required: true },
-        role: { },
-        maxPlayers: { type: Number, default: 0 }
+        role: {type: String, required: true },
+        roleData: { type: Object, required: true }
+       },
+      
+      mixins: [ResponsiveMixin],
+      
+      breakpoints: {
+        tiny: el => (el.width < 80),
+        small: el => (el.width >= 80) && (el.width < 150),
+        medium: el => (el.width >= 150) && (el.width < 300),
+        large: el => (el.width >= 300),
       },
 
-      data() {
-	      return {
-          isHovered: false
-        }
-      },
-      
-      computed: {
-        playerGroup() {
-          //Not sure if we should pass all players, or just that group
-          return this.players.filter((player) => player.group === this.groupId);
-        },
-        emptySlots() { return this.maxPlayers ? this.maxPlayers - this.playerGroup.length : 1; }
-      },
-          
-      methods: {
-        enterDrag() { this.isHovered = true; },
-        exitDrag() { this.isHovered = false; },
-        onDrop(evt) {
-          evt.preventDefault();
-          this.isHovered = false;
 
-          // TODO: actually check if dropped item is a player
-          // And make fired event a bit nicer... 
-          if ((this.maxPlayers == 0) || (this.emptySlots > 0)) {
-            //evt.targetName = this.groupId; // setData doesn't work with drop.....
-            //bus.send('move-player', evt)
-            const sourceID = evt.dataTransfer.getData("playerID"); 
-            bus.send('move-player', { sourceID: sourceID, targetGroup: this.groupId });
-            evt.stopPropagation(); // prevent event being caught by container
-          } else {
-             // TODO: replace with bus err
-             console.log("ERR: Position already full", );
-          }
-        },
-      },
-      
       template: `
-      <div
-        :class="['drop-zone', {hovered: isHovered}]"
-        @dragenter="enterDrag()"
-        @dragexit="exitDrag()"
-        @drop="onDrop($event)"
-        @dragover.prevent>
-        <player-card
-          v-for="playerd in playerGroup"
-          :key="playerd.title"
-          :player="playerd"
-          :role="role"
-          @dragenter="exitDrag()"
-          @dragexit="enterDrag()">
-        </player-card>
+        <div 
+          :class="[
+            'hoverable',
+            'role-card',
+            'left-align',
+            'z-depth-1',
+            { tiny: el.is.tiny },
+            { small: el.is.small },
+            { medium: el.is.medium },
+            { large: el.is.large },
+          ]"
+          style="position: relative;">
+          
+          <div style="position: absolute; top:-20px; right:0px;"> {{ el.width.toFixed(2) }} </div>
+          
+          <img
+            class="role-icon"
+            :src="'/media/roles/' + role + '.png'"
+          />
+          
 
-        <div class="card-panel player-card dummy" v-if="maxPlayers" v-for="n in emptySlots"> {{ name }} {{n}} </div>
-        <div class="card-panel player-card dummy" v-else> ... {{ name }} ... </div>
-      </div>
-      `
-    })
+          <div class="role-sr">
+            {{ roleData.sr }}
+            <br />
+            {{ roleData.peakSr }}
+          </div>
+          
+          <div class="most-played">
+            <img v-for="hero in roleData.mostPlayed"
+              class="responsive-img"
+              :src="'/media/heroes/' + hero + '.png'"
+            />
+          </div>
+
+        </div>`,
+        
+      methods: { },
+        
+    });
+    
   </script>
   
 </head>
