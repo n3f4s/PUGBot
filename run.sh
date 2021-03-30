@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
-source bin/activate
+virtualenv2 venv
 
-FLASK_APP=server.py flask run --port 63083
+python src/helper/rank_gen.py ranks.json src
+
+FLASK_APP=src/server.py flask run --port 63083
