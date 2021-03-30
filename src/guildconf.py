@@ -15,14 +15,3 @@ class GuildConfig:
         self.guild_id = guild
         self.lobbies = lobbies
         self.prefix = prefix
-
-CONFIG = {
-    823930184067579954: GuildConfig(823930184067579954,
-                                    [LobbyVC("Test",
-                                             823930184067579958,
-                                             823930252526485606,
-                                             823930252526485606)],
-                               "%")
- }
-
-print(CONFIG)
