@@ -4,6 +4,10 @@
 
   <!--Import Google Icon Font-->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  
+  <!--Import Google Fonts-->
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
       
   <!--Import materialize.css-->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
@@ -13,6 +17,7 @@
 
   <!-- Vue development version, includes helpful console warnings -->
   <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <!--<script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>-->
   
   <!--Let browser know website is optimized for mobile-->
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -38,7 +43,6 @@
     }
     
     #app {
-      text-align: center;
       margin-top: 0;
       padding: 0;
     }
@@ -51,40 +55,66 @@
       opacity: 0.3;
     }
     
-    .drop-zone {
+    .player-group {
       padding: 0px;
-      
+      margin-bottom: 10px;
     }
     
     .player-card {
       background-color: #876;
       color: #fff;
-      height: 120px;
-      margin-bottom: 10px;
+      height: 80px;
+      margin-bottom: 0px;
       padding: 0px;
       border-radius: 10px;
     }
-   
+    
+    .player-card.dummy {
+      position: relative;
+      background-color: #eee;
+      color: #999;
+    }
+    
     .player-card.dummy {
       background-color: #eee;
-      color: #000;
+    }
+    
+    .player-card.dummy .role-icon {
+      opacity: 0.25;
+      filter: invert(100%);
+      position: absolute;
+      width: 60px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%,-50%);
     }
     
     .player-card .card-header {
-      height: 40px;
+      height: 25px;
+      text-align: left;
+      padding-left: 30px;
+      font-family: 'Roboto Mono', monospace;
+      font-style: italic;
+      font-style: bolder;
+      color: #fff;
+    }
+    
+    .player-card .card-header .playerID {
+      font-size: 8pt;
     }
     
     .role-card {
       background-color: #654;
       padding: 0px;
       border-radius: 5px;
-      height: 70px;
+      height: 50px;
     }
     
     .role-card .role-icon {
       position: absolute;
       width: 30%;
-      top: 5%;
+      max-width: 30px;
+      top: 5px;
       left: 5%;
       transform: translate(-50%,-50%);
     }
@@ -93,6 +123,7 @@
       opacity: 0.5;
       filter: invert(100%);
       width: 40px;
+      max-width: 60px;
       top: 50%;
       left: 30px;
       transform: translate(-50%,-50%);
@@ -102,34 +133,73 @@
       opacity: 0.5;
       filter: invert(100%);
       width: 60px;
+      max-width: 60px;
       top: 50%;
-      left: 40px;
+      left: 30px;
       transform: translate(-50%,-50%);
     }
     
     .role-card .role-sr {
       display: inline-block;
-      vertical-align: top;
-      margin-left: 25%;
-      padding: 0px;
+      position: relative;
+      text-align: center;
+      padding: 7px;
+      margin-left: 5px;
+      font-family: 'Roboto Mono', monospace;
+      font-style: italic;
+      font-style: bolder;
+      line-height: 0.8;
+    }
+    
+    .role-card.tiny .role-sr {
+      margin: auto;
+    }
+    
+    .role-card.medium .role-sr {
+      margin-left: 40px;
     }
     
     .role-card.large .role-sr {
-      margin-left: 80px;
+      margin-left: 50px;
+    }
+    
+    .role-card .role-sr .current {
+      font-size: large;
+      filter: invert(0%); // hack to force zorder
+    }
+    
+    .role-card .role-sr .peak {
+      font-size: small;
+    }
+    
+    .role-card .role-sr img {
+      width: 40px;
+      margin-bottom: -16px;
+      margin-top: -8px;
+      margin-left: 3px;
+      filter: invert(25%);
+    }
+    
+    .role-card .vertical-line {
+      width: 0px; /* Use only border style */
+      height: 60%;
+      float: left; 
+      border: 1px inset #432; /* This is default border style for <hr> tag */
+    }
+    
+    role-card.tiny .vertical-line {
+      display: none;
     }
     
     .role-card .most-played {
       display: inline-block;
       vertical-align: top;
-      margin: 0px;
+      margin: 10px;
       padding: 0px;
+      width: 100%;
     }
     
     .role-card.tiny .most-played {
-      display: none;
-    }
-    
-    .role-card.small .most-played {
       display: none;
     }
     
@@ -142,6 +212,38 @@
       width: 50px;
     }
     
+    
+    .team-blue .player-card {
+      background-color: #668;
+    }
+    
+    .team-red .player-card {
+      background-color: #955;
+    }
+    
+    .team-blue .player-card .role-card {
+      background-color: #335;
+    }
+    
+    .team-red .player-card .role-card {
+      background-color: #622;
+    }
+    
+    .team-blue .player-card .role-card .role-icon {
+      filter: invert(0%);
+    }
+    
+    .team-red .player-card .role-card .role-icon {
+      filter: invert(0%);
+    }
+    
+    .team-blue .player-card.dummy {
+      background-color: #eee;
+    }
+    
+    .team-red .player-card.dummy {
+      background-color: #eee;
+    }
 
   </style>
   
@@ -290,7 +392,6 @@
       methods: {
         send(eventName, event) {
             this.$emit(eventName, event);
-            console.log(eventName);
             
             // send event to server
             var xhr = new XMLHttpRequest();
@@ -407,7 +508,7 @@
       
       template: `
       <div
-        :class="['drop-zone', {'z-depth-5': isHovered}]"
+        :class="['player-group', {'z-depth-5': isHovered}]"
         @dragenter="enterDrag()"
         @dragexit="exitDrag()"
         @drop="onDrop($event)"
@@ -421,7 +522,13 @@
           @dragexit="enterDrag()">
         </player-card>
 
-        <div class="card-panel player-card dummy" v-if="maxPlayers" v-for="n in emptySlots"> {{ name }} {{n}} </div>
+        <div class="card-panel player-card dummy" v-if="maxPlayers" v-for="n in emptySlots">
+           {{ name }} {{n}}
+           <img
+            class="role-icon"
+            :src="'/assets/icons/roles/' + role + '.png'"
+           />
+        </div>
         <div class="card-panel player-card dummy" v-else> ... {{ name }} ... </div>
       </div> `,
           
@@ -490,16 +597,23 @@
           @dragover.prevent>
 
           <div class="row">
-            <div class="col m12 card-header">{{ player.profileData.tag }}{{ player.title }} </div>
+            <div class="col m12 card-header">
+            <span class="gameID">
+              {{ player.profileData.tag }} 
+            </span>
+            <span class="playerID">
+              ( {{ player.title }} )
+            </span>
+            </div>
             
             <div class="col m12">
-              <div style="padding-right: 10px">
+              <div style="padding-right: 5px">
                 <table
                   style="table-layout: fixed; width: 100%;"
                   border="0"
                   cellspacing="0"
                   cellpadding="0">
-                  <td v-for="roled in roles" style="padding-left: 10px;">
+                  <td v-for="roled in roles" style="padding-left: 5px;">
                     <role-card
                       :role="roled"
                       :role-data="player.profileData.overview[roled]">
@@ -551,12 +665,34 @@
       mixins: [ResponsiveMixin],
       
       breakpoints: {
-        tiny: el => (el.width < 80),
-        small: el => (el.width >= 80) && (el.width < 150),
-        medium: el => (el.width >= 150) && (el.width < 300),
+        tiny: el => (el.width < 100),
+        small: el => (el.width >= 100) && (el.width < 200),
+        medium: el => (el.width >= 200) && (el.width < 300),
         large: el => (el.width >= 300),
       },
 
+      computed: {
+        rank() {
+        const sr = this.roleData.peakSr;
+          if (sr > 4000) {
+            return "grandmaster";
+          } else if (sr > 3500) {
+            return "master";
+          } else if (sr > 3000) {
+            return "diamond";
+          } else if (sr > 2500) {
+            return "platinum";
+          } else if (sr > 2000) {
+            return "gold";
+          } else if (sr > 1500) {
+            return "silver";
+          } else if (sr > 0) {
+            return "bronze";
+          } else {
+            return "literally NA";
+          }
+        },
+      },
 
       template: `
         <div 
@@ -564,6 +700,7 @@
             'hoverable',
             'role-card',
             'left-align',
+            'valign-wrapper',
             'z-depth-1',
             { tiny: el.is.tiny },
             { small: el.is.small },
@@ -572,24 +709,30 @@
           ]"
           style="position: relative;">
           
-          <div style="position: absolute; top:-20px; right:0px;"> {{ el.width.toFixed(2) }} </div>
+          <div style="position:absolute;bottom:-2px;right:0px;font-size:7pt;">width={{ el.width.toFixed(2) }}</div>
           
           <img
             class="role-icon"
-            :src="'/media/roles/' + role + '.png'"
+            :src="'/assets/icons/roles/' + role + '.png'"
           />
           
 
           <div class="role-sr">
-            {{ roleData.sr }}
+            <img
+              class="rank-icon"
+              :src="'/assets/icons/ranks/' + this.rank + '.png'"
+            />
             <br />
-            {{ roleData.peakSr }}
+            <span class="current">{{ (roleData.sr) ? roleData.sr : '-' }}</span>
+            <br />
+            <span class="peak">{{ (roleData.peakSr) ? roleData.peakSr : '-' }}</span>
           </div>
           
-          <div class="most-played">
+          <div v-if="!el.is.tiny" class="vertical-line"></div>
+          
+          <div v-if="!el.is.tiny" class="most-played">
             <img v-for="hero in roleData.mostPlayed"
-              class="responsive-img"
-              :src="'/media/heroes/' + hero + '.png'"
+              :src="'/assets/icons/heroes/' + hero + '.png'"
             />
           </div>
 
@@ -604,21 +747,40 @@
 </head>
 
 <body>
+  <div>
+    <div class = "row"><img class="col m1 push-m1" src="assets/icon.jpg" /></div>
+    
+    <div class="row">
+      <div id="app" class="col l12">
+          <div class="col l3 push-l1 m5">
+            <player-group group-id="waiting" :players="players" ></player-group>
+          </div>
+          
+          <div v-for="team in teams" class="col l2 push-l1 m3" :class="'team-'+team" >
+            <div v-for="role in roles">
+              <player-group
+                :group-id="team+'.'+role+'.1'"
+                :team="team" :role="role"
+                :players="players"
+                :max-players="1"
+                >
+              </player-group>
+              <player-group
+                :group-id="team+'.'+role+'.2'"
+                :team="team" :role="role"
+                :players="players"
+                :max-players="1"
+                >
+              </player-group>
+            </div>
+            {{ team }}
+          </div>
 
-  <div class = "row center"><img class="col m1" src="media/icon.jpg" /></div>
-  
-  <div id="app" class = "row center">
-      <div class="col m3">
-        <player-group group-id="waiting" :players="players" ></player-group>
+        </div>
       </div>
-      
-      <div v-for="team in teams" class="col m3" :class="'team-'+team" >
-         {{ team }}
-         <player-group v-for="role in roles" :group-id="team+'.'+role" :team="team" :role="role" :players="players" :max-players="2"></player-group>
-      </div>
-
     </div>
   </div>
 
 </body>
+
 </html>

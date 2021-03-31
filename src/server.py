@@ -52,8 +52,6 @@ class GameLobby:
         msg_type = msg["event"]
         msg_data = msg["data"]
         
-        print(msg)
-        
         # Can use a switch here
         if msg_type == "move-player":
             self._movePlayer(msg_data["sourceID"], msg_data["targetGroup"])
@@ -161,13 +159,13 @@ def getOverwatchProfile(bnetId):
                 "mostPlayed": [ "dva", "zarya", "winston" ]
             },
             "damage": {
-                "sr": 2500, 
-                "peakSr": 2900,
+                "sr": 2330, 
+                "peakSr": 2495,
                 "mostPlayed": [ "mccree", "ashe", "pharah" ]
             },
             "support": {
                "sr": None, 
-                "peakSr": None,
+                "peakSr": 3216,
                 "mostPlayed": [ "lucio" ]
             },
         },
@@ -180,7 +178,7 @@ def getOverwatchProfile(bnetId):
 class EscapedFlask(Flask):
     jinja_options = Flask.jinja_options.copy()
     jinja_options.update(dict( variable_start_string='%%', variable_end_string='%%'))
-app = EscapedFlask(__name__)
+app = EscapedFlask(__name__, template_folder = os.path.join("..", "templates"))
 
 
 lobby = GameLobby()
@@ -218,12 +216,12 @@ def processLobbyUpdates():
         
 @app.route('/favicon.ico')
 def favicon():
-    return send_from_directory(os.path.join(app.root_path),
+    return send_from_directory(os.path.join("..", "assets"),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
                                
-@app.route('/media/<path:path>')
-def send_media(path):
-    return send_from_directory('media', path)
+@app.route('/assets/<path:path>')
+def send_assets(path):
+    return send_from_directory(os.path.join("..", "assets"), path)
 
 
     
