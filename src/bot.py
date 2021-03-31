@@ -3,10 +3,10 @@ Contains the main functionnality of the bot
 and what will be imported to run it
 """
 
-import discord
+import os
 import logging
-import requests
 from typing import Dict, List
+import discord
 from guildconf import GuildConfig, LobbyVC
 from btag import Btag
 
@@ -55,7 +55,7 @@ class MyClient(discord.Client):
         """Execute when client is ready"""
         print('Logged on as {0}!'.format(self.user))
 
-    def on_dm(self, message):
+    async def on_dm(self, message):
         """
         When receiving a DM:
         - If the player isn't in `players` then do nothing (the player isn't in any discord lobby)
@@ -86,7 +86,7 @@ class MyClient(discord.Client):
                 return True
         return False
 
-    def _send_registration_dm(self, mem: discord.Member, after: discord.VoiceChannel):
+    async def _send_registration_dm(self, mem: discord.Member, after: discord.VoiceChannel):
         self.players[mem.id] = PUGPlayerStatus(mem, after, [])
         self.logger.info('Registering %s for lobby %s', mem.name, after.name)
         dm_chan = await mem.create_dm()
@@ -121,9 +121,9 @@ class MyClient(discord.Client):
                               before: discord.VoiceState,
                               after: discord.VoiceState):
         """
-        Handle player leaving a lobby: remove the player form the statuses
+        Handle player leaving a lobby: set the lobby to None
         """
-        del self.players[mem.id]
+        self.players[mem.id].lobby = None
 
     # FIXME:
     # 1. If someone join, mark them as "logged in"
