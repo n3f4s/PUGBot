@@ -4,6 +4,10 @@
 
   <!--Import Google Icon Font-->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  
+  <!--Import Google Fonts-->
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
       
   <!--Import materialize.css-->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
@@ -13,6 +17,7 @@
 
   <!-- Vue development version, includes helpful console warnings -->
   <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <!--<script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>-->
   
   <!--Let browser know website is optimized for mobile-->
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -24,8 +29,20 @@
       background-color: #fff;
     }
     
+    table {
+      border: 0px;
+      padding:0; 
+      margin:0;
+    }
+    
+    td {
+      border: 0px;
+      padding:0; 
+      margin:0;
+      border-collapse: collapse;
+    }
+    
     #app {
-      text-align: center;
       margin-top: 0;
       padding: 0;
     }
@@ -38,32 +55,332 @@
       opacity: 0.3;
     }
     
-    .drop-zone {
+    .player-group {
       padding: 0px;
-      
+      margin-bottom: 10px;
     }
     
     .player-card {
       background-color: #876;
       color: #fff;
-      height: 120px;
+      height: 80px;
       margin-bottom: 0px;
       padding: 0px;
       border-radius: 10px;
     }
-   
-    .player-card img {
-      height: 40px;
+    
+    .player-card.dummy {
+      position: relative;
+      background-color: #eee;
+      color: #999;
     }
     
     .player-card.dummy {
       background-color: #eee;
-      color: #000;
+    }
+    
+    .player-card.dummy .role-icon {
+      opacity: 0.25;
+      filter: invert(100%);
+      position: absolute;
+      width: 60px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%,-50%);
+    }
+    
+    .player-card .card-header {
+      height: 25px;
+      text-align: left;
+      padding-left: 30px;
+      font-family: 'Roboto Mono', monospace;
+      font-style: italic;
+      font-style: bolder;
+      color: #fff;
+    }
+    
+    .player-card .card-header .playerID {
+      font-size: 8pt;
+    }
+    
+    .role-card {
+      background-color: #654;
+      padding: 0px;
+      border-radius: 5px;
+      height: 50px;
+    }
+    
+    .role-card .role-icon {
+      position: absolute;
+      width: 30%;
+      max-width: 30px;
+      top: 5px;
+      left: 5%;
+      transform: translate(-50%,-50%);
+    }
+    
+    .role-card.medium .role-icon {
+      opacity: 0.5;
+      filter: invert(100%);
+      width: 40px;
+      max-width: 60px;
+      top: 50%;
+      left: 30px;
+      transform: translate(-50%,-50%);
+    }
+    
+    .role-card.large .role-icon {
+      opacity: 0.5;
+      filter: invert(100%);
+      width: 60px;
+      max-width: 60px;
+      top: 50%;
+      left: 30px;
+      transform: translate(-50%,-50%);
+    }
+    
+    .role-card .role-sr {
+      display: inline-block;
+      position: relative;
+      text-align: center;
+      padding: 7px;
+      margin-left: 5px;
+      font-family: 'Roboto Mono', monospace;
+      font-style: italic;
+      font-style: bolder;
+      line-height: 0.8;
+    }
+    
+    .role-card.tiny .role-sr {
+      margin: auto;
+    }
+    
+    .role-card.medium .role-sr {
+      margin-left: 40px;
+    }
+    
+    .role-card.large .role-sr {
+      margin-left: 50px;
+    }
+    
+    .role-card .role-sr .current {
+      font-size: large;
+      filter: invert(0%); // hack to force zorder
+    }
+    
+    .role-card .role-sr .peak {
+      font-size: small;
+    }
+    
+    .role-card .role-sr img {
+      width: 40px;
+      margin-bottom: -16px;
+      margin-top: -8px;
+      margin-left: 3px;
+      filter: invert(25%);
+    }
+    
+    .role-card .vertical-line {
+      width: 0px; /* Use only border style */
+      height: 60%;
+      float: left; 
+      border: 1px inset #432; /* This is default border style for <hr> tag */
+    }
+    
+    role-card.tiny .vertical-line {
+      display: none;
+    }
+    
+    .role-card .most-played {
+      display: inline-block;
+      vertical-align: top;
+      margin: 10px;
+      padding: 0px;
+      width: 100%;
+    }
+    
+    .role-card.tiny .most-played {
+      display: none;
+    }
+    
+    .role-card .most-played img {
+      margin: auto;
+      width: 30px;
+    }
+    
+    .role-card.large .most-played img {
+      width: 50px;
+    }
+    
+    
+    .team-blue .player-card {
+      background-color: #668;
+    }
+    
+    .team-red .player-card {
+      background-color: #955;
+    }
+    
+    .team-blue .player-card .role-card {
+      background-color: #335;
+    }
+    
+    .team-red .player-card .role-card {
+      background-color: #622;
+    }
+    
+    .team-blue .player-card .role-card .role-icon {
+      filter: invert(0%);
+    }
+    
+    .team-red .player-card .role-card .role-icon {
+      filter: invert(0%);
+    }
+    
+    .team-blue .player-card.dummy {
+      background-color: #eee;
+    }
+    
+    .team-red .player-card.dummy {
+      background-color: #eee;
     }
 
   </style>
   
+  <script type="text/javascript">
+  
+    // https://stackoverflow.com/questions/27078285/simple-throttle-in-js
+    function throttle (callback, limit, immediate, trailing) {
+      var waiting = false;                    // Initially, we're not waiting
+      return function () {                    // We return a throttled function
+        if (!waiting) {                       // If we're not waiting
+          callback.apply(this, arguments);    // Execute users function
+          waiting = true;                     // Prevent future invocations
+          setTimeout(function () {            // After a period of time
+            waiting = false;                  // And allow future invocations
+          }, limit);
+        }
+      }
+    }
 
+    //https://davidwalsh.name/javascript-debounce-function
+    // Returns a function, that, as long as it continues to be invoked, will not
+    // be triggered. The function will be called after it stops being called for
+    // N milliseconds. If `immediate` is passed, trigger the function on the
+    // leading edge, instead of the trailing.
+    function debounce(func, wait, immediate, trailing) {
+      var timeout;
+      return function() {
+        var context = this, args = arguments;
+        var later = function() {
+          timeout = null;
+          if (trailing) func.apply(context, args);
+        };
+        var callNow = immediate && !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+        if (callNow) func.apply(context, args);
+      };
+    };
+
+    // https://github.com/Kelin2025/vue-responsive-components
+    const ResponsiveMixin = {
+      data() {
+        return {
+          el: {
+            width: 0,
+            height: 0,
+            is: {}
+          }
+        }
+      },
+      mounted() {
+        if (
+          typeof process === "undefined" ||
+          (!process.server && (this.breakpoints || this.$options.breakpoints))
+        ) {
+          this.$nextTick(() => {
+            const handleResize = throttle(entries => {
+              const cr = entries[0].contentRect;
+              this.el.width = cr.width;
+              this.el.height = cr.height;
+              const conds = Object.assign(
+                {},
+                this.breakpoints || {},
+                this.$options.breakpoints || {}
+              );
+              for (const breakpoint in conds) {
+                this.$set(this.el.is, breakpoint, conds[breakpoint](this.el));
+              }
+            }, 100, true, true);
+
+            const observer = new ResizeObserver(handleResize);
+            if (this.$el instanceof Element) {
+              observer.observe(this.$el);
+            }
+          })
+        }
+      }
+    }
+
+    const Responsive = {
+      data() {
+        return { init: false }
+      },
+      props: {
+        noHide: { type: Boolean, default: false },
+        breakpoints: { type: Object, default: undefined }
+      },
+      mixins: [ResponsiveMixin],
+      render(h) {
+        const slot =
+          (this.$scopedSlots.default && this.$scopedSlots.default(this.el)) ||
+          this.$slots.default;
+
+        return !this.noHide && !this.init
+          ? h(
+              "div",
+              {
+                style: { visibility: "hidden" }
+              },
+              [slot]
+            )
+          : slot;
+      },
+      mounted() {
+        this.init = true;
+      }
+    }
+    Vue.component("Responsive", Responsive);
+
+    const ResponsiveDirective = {
+      inserted(el, conds) {
+        if (typeof process === "undefined" || !process.server) {
+          const handleResize = throttle(entries => {
+            const cr = entries[0].contentRect;
+            for (const breakpoint in conds.value) {
+              if (conds.value[breakpoint](cr)) {
+                el.classList.add(breakpoint);
+              } else {
+                el.classList.remove(breakpoint);
+              }
+            }
+          }, 100, true, true);
+
+          const observer = new ResizeObserver(handleResize);
+          observer.observe(el);
+        }
+      }
+    }
+    Vue.directive("responsive", ResponsiveDirective);
+
+    /*const VueResponsiveComponents = Vue => {
+      Vue.component("Responsive", Responsive)
+      Vue.directive("responsive", ResponsiveDirective)
+    }*/
+  </script>
+
+  
   <script type="text/javascript">
   
     const bus = new Vue({
@@ -107,6 +424,7 @@
       
     });
 
+    
     window.addEventListener('load', function () {
       var app = new Vue({
         el: "#app",
@@ -136,91 +454,35 @@
             const group1 = player.group;
             player.group = targplayer.group;
             targplayer.group = group1;
-          }
+          },
+          
+          playerJoin(evt) {
+            // TODO: Change this to use literals rather than raw event
+            const playerData = evt.playerData;
+            this.players.push(playerData);
+          },
+          
+          playerLeave(evt) {
+            // TODO: Change this to use literals rather than raw event
+            const playerID = evt.targetID;
+            var i = this.players.length;
+            while (i--) {
+              if (this.players[i].id == playerID) this.players.splice(i, 1);
+            }
+          },
           
         },
 
         created() {
           bus.$on('move-player', (evt) => { this.movePlayer(evt); });
           bus.$on('swap-player', (evt) => { this.swapPlayer(evt); });
+          bus.$on('player-join', (evt) => { this.playerJoin(evt); });
+          bus.$on('player-leave', (evt) => { this.playerLeave(evt); });
         }
       });
     });
     
-    Vue.component('player-card', {
-      props: ['player', 'role'],
-      
-      data() {
-	      return {
-          isDragged: false,
-          isHovered: false
-        }
-      },
-      
-      computed: {
-        roles() {
-          if (Array.isArray(this.role)) {
-            return this.role;
-          } else if (Object.prototype.toString.call(this.role) === '[object String]') {
-            return [ this.role ];
-          } else {
-            return [ "tank", "damage", "support" ];
-          }
-        }
-      },
-
-      methods: {
-        startDrag(evt, player) {
-          evt.dataTransfer.dropEffect = "move";
-          evt.dataTransfer.effectAllowed = "move";
-          evt.dataTransfer.setData("playerID", player.id);
-
-          this.isDragged = true;
-        },
-        endDrag() { this.isDragged = false; },
-        enterDrag(evt) { this.isHovered = true; evt.stopPropagation(); },
-        exitDrag(evt) { this.isHovered = false; evt.stopPropagation(); },
-        onDrop(evt, player) {
-          evt.preventDefault();
-          this.isHovered = false;
-
-          // TODO: actually check if dropped item is a player
-          const sourceID = evt.dataTransfer.getData("playerID"); 
-          bus.send('swap-player', { sourceID: sourceID, targetID: player.id });
-          evt.stopPropagation();
-        },
-      },
         
-      template: `
-        <div
-          :class="['card-panel', 'hoverable', 'player-card', {dragged: isDragged}, {hovered: isHovered}]"
-          draggable
-          @dragstart="startDrag($event, player)"
-          @dragend="endDrag()"
-          @dragenter="enterDrag($event)"
-          @dragexit="exitDrag($event)"
-          @drop="onDrop($event, player)"
-          @dragover.prevent>
-          
-          <div class="row center">
-            <div class="col m4">{{ player.title }} <br>  {{ player.profileData.tag }}</div>
-          </div> 
-          <div class="row center">
-            <div v-for="roled in roles" class= "col m4" :class="(roles.length == 3) ? '' : 'offset-m4'">
-              <div class="valign-wrapper center-align">
-                <img class="responsive-img" :src="'/media/roles/' + roled + '.png'" />
-              
-                {{ player.profileData.overview[roled].sr }}
-                <br>
-                {{ player.profileData.overview[roled].peakSr }}
-              </div>
-            </div>
-          </div> 
-          
-        </div> `
-    })
-    
-    
     Vue.component('player-group', {
       props: {
         groupId: { type: String, required: true },
@@ -243,32 +505,10 @@
         },
         emptySlots() { return this.maxPlayers ? this.maxPlayers - this.playerGroup.length : 1; }
       },
-          
-      methods: {
-        enterDrag() { this.isHovered = true; },
-        exitDrag() { this.isHovered = false; },
-        onDrop(evt) {
-          evt.preventDefault();
-          this.isHovered = false;
-
-          // TODO: actually check if dropped item is a player
-          // And make fired event a bit nicer... 
-          if ((this.maxPlayers == 0) || (this.emptySlots > 0)) {
-            //evt.targetName = this.groupId; // setData doesn't work with drop.....
-            //bus.send('move-player', evt)
-            const sourceID = evt.dataTransfer.getData("playerID"); 
-            bus.send('move-player', { sourceID: sourceID, targetGroup: this.groupId });
-            evt.stopPropagation(); // prevent event being caught by container
-          } else {
-             // TODO: replace with bus err
-             console.log("ERR: Position already full", );
-          }
-        },
-      },
       
       template: `
       <div
-        :class="['drop-zone', {hovered: isHovered}]"
+        :class="['player-group', {'z-depth-5': isHovered}]"
         @dragenter="enterDrag()"
         @dragexit="exitDrag()"
         @drop="onDrop($event)"
@@ -282,33 +522,265 @@
           @dragexit="enterDrag()">
         </player-card>
 
-        <div class="card-panel player-card dummy" v-if="maxPlayers" v-for="n in emptySlots"> {{ name }} {{n}} </div>
+        <div class="card-panel player-card dummy" v-if="maxPlayers" v-for="n in emptySlots">
+           {{ name }} {{n}}
+           <img
+            class="role-icon"
+            :src="'/assets/icons/roles/' + role + '.png'"
+           />
+        </div>
         <div class="card-panel player-card dummy" v-else> ... {{ name }} ... </div>
-      </div>
-      `
-    })
+      </div> `,
+          
+      methods: {
+        enterDrag() { this.isHovered = true; },
+        exitDrag() { this.isHovered = false; },
+        onDrop(evt) {
+          evt.preventDefault();
+          this.isHovered = false;
+
+          // TODO: actually check if dropped item is a player
+          if ((this.maxPlayers == 0) || (this.emptySlots > 0)) {
+            const sourceID = evt.dataTransfer.getData("playerID"); 
+            bus.send('move-player', { sourceID: sourceID, targetGroup: this.groupId });
+            evt.stopPropagation(); // prevent event being caught by container
+          } else {
+             // TODO: replace with bus err
+             console.log("ERR: Position already full", );
+          }
+        },
+      }
+      
+    });
+
+    
+    Vue.component('player-card', {
+      props: {
+        player: { type: Object, required: true },
+        role: {}
+       },
+      
+      data() {
+	      return {
+          isDragged: false,
+          isHovered: false
+        }
+      },
+      
+      computed: {
+        roles() {
+          if (Array.isArray(this.role)) {
+            return this.role;
+          } else if (Object.prototype.toString.call(this.role) === '[object String]') {
+            return [ this.role ];
+          } else {
+            return [ "tank", "damage", "support" ];
+          }
+        }
+      },
+      
+      template: `
+        <div
+          :class="[
+            'card-panel',
+            'hoverable',
+            'player-card',
+            {dragged: isDragged},
+            {hovered: isHovered}
+          ]"
+          draggable
+          @dragstart="startDrag($event, player)"
+          @dragend="endDrag()"
+          @dragenter="enterDrag($event)"
+          @dragexit="exitDrag($event)"
+          @drop="onDrop($event, player)"
+          @dragover.prevent>
+
+          <div class="row">
+            <div class="col m12 card-header">
+            <span class="gameID">
+              {{ player.profileData.tag }} 
+            </span>
+            <span class="playerID">
+              ( {{ player.title }} )
+            </span>
+            </div>
+            
+            <div class="col m12">
+              <div style="padding-right: 5px">
+                <table
+                  style="table-layout: fixed; width: 100%;"
+                  border="0"
+                  cellspacing="0"
+                  cellpadding="0">
+                  <td v-for="roled in roles" style="padding-left: 5px;">
+                    <role-card
+                      :role="roled"
+                      :role-data="player.profileData.overview[roled]">
+                    </role-card>
+                  </td>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div> `,
+
+      methods: {
+        startDrag(evt, player) {
+          evt.dataTransfer.dropEffect = "move";
+          evt.dataTransfer.effectAllowed = "move";
+          evt.dataTransfer.setData("playerID", player.id);
+
+          this.isDragged = true;
+        },
+        endDrag() { this.isDragged = false; },
+        enterDrag(evt) { this.isHovered = true; evt.stopPropagation(); },
+        exitDrag(evt) { this.isHovered = false; evt.stopPropagation(); },
+        onDrop(evt, player) {
+          evt.preventDefault();
+          this.isHovered = false;
+
+          // TODO: actually check if dropped item is a player
+          const sourceID = evt.dataTransfer.getData("playerID"); 
+          bus.send('swap-player', { sourceID: sourceID, targetID: player.id });
+          evt.stopPropagation();
+        },
+        testplayerremove(player) { bus.send('player-leave', { targetID: player.id }); },
+        testplayerclone(player) {
+          var clone = Object.assign({}, player);
+          clone.id = "ARRRRRR";
+          bus.send('player-join', { playerData: clone });
+        },
+      },
+        
+    });
+    
+    
+    Vue.component('role-card', {
+      props: {
+        role: {type: String, required: true },
+        roleData: { type: Object, required: true }
+       },
+      
+      mixins: [ResponsiveMixin],
+      
+      breakpoints: {
+        tiny: el => (el.width < 100),
+        small: el => (el.width >= 100) && (el.width < 200),
+        medium: el => (el.width >= 200) && (el.width < 300),
+        large: el => (el.width >= 300),
+      },
+
+      computed: {
+        rank() {
+        const sr = this.roleData.peakSr;
+          if (sr > 4000) {
+            return "grandmaster";
+          } else if (sr > 3500) {
+            return "master";
+          } else if (sr > 3000) {
+            return "diamond";
+          } else if (sr > 2500) {
+            return "platinum";
+          } else if (sr > 2000) {
+            return "gold";
+          } else if (sr > 1500) {
+            return "silver";
+          } else if (sr > 0) {
+            return "bronze";
+          } else {
+            return "literally NA";
+          }
+        },
+      },
+
+      template: `
+        <div 
+          :class="[
+            'hoverable',
+            'role-card',
+            'left-align',
+            'valign-wrapper',
+            'z-depth-1',
+            { tiny: el.is.tiny },
+            { small: el.is.small },
+            { medium: el.is.medium },
+            { large: el.is.large },
+          ]"
+          style="position: relative;">
+          
+          <div style="position:absolute;bottom:-2px;right:0px;font-size:7pt;">width={{ el.width.toFixed(2) }}</div>
+          
+          <img
+            class="role-icon"
+            :src="'/assets/icons/roles/' + role + '.png'"
+          />
+          
+
+          <div class="role-sr">
+            <img
+              class="rank-icon"
+              :src="'/assets/icons/ranks/' + this.rank + '.png'"
+            />
+            <br />
+            <span class="current">{{ (roleData.sr) ? roleData.sr : '-' }}</span>
+            <br />
+            <span class="peak">{{ (roleData.peakSr) ? roleData.peakSr : '-' }}</span>
+          </div>
+          
+          <div v-if="!el.is.tiny" class="vertical-line"></div>
+          
+          <div v-if="!el.is.tiny" class="most-played">
+            <img v-for="hero in roleData.mostPlayed"
+              :src="'/assets/icons/heroes/' + hero + '.png'"
+            />
+          </div>
+
+        </div>`,
+        
+      methods: { },
+        
+    });
+    
   </script>
   
 </head>
 
 <body>
+  <div>
+    <div class = "row"><img class="col m1 push-m1" src="assets/icon.jpg" /></div>
+    
+    <div class="row">
+      <div id="app" class="col l12">
+          <div class="col l3 push-l1 m5">
+            <player-group group-id="waiting" :players="players" ></player-group>
+          </div>
+          
+          <div v-for="team in teams" class="col l2 push-l1 m3" :class="'team-'+team" >
+            <div v-for="role in roles">
+              <player-group
+                :group-id="team+'.'+role+'.1'"
+                :team="team" :role="role"
+                :players="players"
+                :max-players="1"
+                >
+              </player-group>
+              <player-group
+                :group-id="team+'.'+role+'.2'"
+                :team="team" :role="role"
+                :players="players"
+                :max-players="1"
+                >
+              </player-group>
+            </div>
+            {{ team }}
+          </div>
 
-  <div class = "row center"><img class="col m1" src="media/icon.jpg" /></div>
-  
-  <div id="app" class = "row center">
-      <div class="col m3">
-        <player-group group-id="waiting" :players="players" ></player-group>
+        </div>
       </div>
-      
-      
-      <div v-for="team in teams" class="col m3" :class="'team-'+team" >
-         {{ team }}
-         <player-group v-for="role in roles" :group-id="team+'.'+role" :team="team" :role="role" :players="players" :max-players="2"></player-group>
-      </div>
-
-      
     </div>
   </div>
 
 </body>
+
 </html>
