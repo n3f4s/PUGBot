@@ -14,6 +14,7 @@ from btag import Btag
 # 1- setup the service file in chocolytech with the appropriate auth
 # 2- logging
 # 3- test
+# 3.5- fault resistance
 # 4- Persistence
 # 5- integrate with backend
 # 6- Actual DB
@@ -147,4 +148,4 @@ class MyClient(discord.Client):
 
 
 client = MyClient()
-client.run('TOKEN')
+client.run(os.environ['DISCORD_BOT_TOKEN'])
