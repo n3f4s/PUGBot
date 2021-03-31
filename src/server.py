@@ -1,10 +1,12 @@
-from flask import Flask
-from flask import send_from_directory, render_template, Response, request
+""" Server """
+
+from queue import Queue
 import json
 import time
 import os
 
-from queue import Queue
+from flask import Flask
+from flask import send_from_directory, render_template, Response, request
 
 
 class MessageBus:
