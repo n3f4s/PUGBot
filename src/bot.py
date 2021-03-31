@@ -3,7 +3,7 @@ Contains the main functionnality of the bot
 and what will be imported to run it
 """
 
-import os
+import os, sys
 import logging
 from typing import Dict, List
 import discord
@@ -11,7 +11,7 @@ from guildconf import GuildConfig, LobbyVC
 from btag import Btag
 
 # TODO:
-# 1- setup the service file in chocolytech with the appropriate auth
+# 1- setup the service file in chocolytech with the appropriate auth (done?)
 # 2- logging
 # 3- test
 # 3.5- fault resistance
@@ -47,13 +47,18 @@ def player_joined(player: discord.Member, tags: List[Btag], lobby: discord.Voice
 class MyClient(discord.Client):
     """Set up and log bot in discord"""
 
-    logger = logging.getLogger('discord')
+    logger = logging.getLogger("Bot")
     logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('[%(asctime)s] [%(name)s] [%(levelname)s]:  %(message)s')
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
     players: Dict[int, PUGPlayerStatus] = {}
 
     async def on_ready(self):
         """Execute when client is ready"""
-        print('Logged on as {0}!'.format(self.user))
+        self.logger.info('Logged on as %s!', self.user)
 
     async def on_dm(self, message):
         """
@@ -63,13 +68,21 @@ class MyClient(discord.Client):
            - Add the btag
            - If the player isn't registered the notify the backend
         """
+        self.logger.debug('Got DM from %s', message.author.display_name)
         if message.author.id not in self.players:
+            self.logger.debug('%s is not in any lobby', message.author.display_name)
             await message.channel.send("You are not in any lobby, join a lobby")
         else:
-            self.players[message.author.id].btags.append(Btag(message.content))
-            if not self.players[message.author.id].is_registered:
-                player_joined(self.players[message.author.id].member,
-                              self.players[message.author.id].btags)
+            player = self.players[message.author.id]
+            self.logger.debug('Saving btag %s for %s',
+                              message.content,
+                              message.author.display_name)
+            player.btags.append(Btag(message.content))
+            if not player.is_registered:
+                self.logger.debug('Notifying backend of new player %s joining VC for the first time',
+                                  message.author.display_name)
+                player.is_registered = True
+                player_joined(player.member, player.btags, player.lobby)
             await message.channel.send("{} is registered with {}"
                                        .format(message.author.display_name,
                                                ", ".join([e.to_string() for e in self.players[message.author.id].btags])))
