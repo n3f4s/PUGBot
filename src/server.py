@@ -178,29 +178,20 @@ def getOverwatchProfile(bnetId):
     
 
 
-# To get different escape characters
-class EscapedFlask(Flask):
-    jinja_options = Flask.jinja_options.copy()
-    jinja_options.update(dict( variable_start_string='%%', variable_end_string='%%'))
-# app = EscapedFlask(__name__, template_folder = os.path.join("..", "templates"))
-app = EscapedFlask(__name__)
-
+app = Flask(__name__)
 
 lobby = GameLobby()
-template = jinja2.Environment()
-
-
-def load_template(name):
-    import sys
-    data = pkgutil.get_data(__name__, os.path.join('templates', name))
-    return data
-
+templateLoader = jinja2.Environment(
+    loader = jinja2.FileSystemLoader('templates'),
+    autoescape = jinja2.select_autoescape(['html', 'xml']),
+    variable_start_string='%%',
+    variable_end_string='%%'
+)
 
 def render_template(name, **kwargs):
-    data = load_template(name).decode()
-    print(data)
-    tpl = template.from_string(data)
+    tpl = templateLoader.get_template(name)
     return tpl.render(**kwargs)
+
 
 @app.route('/')
 def root():
