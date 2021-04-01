@@ -243,8 +243,12 @@ def ssetestevents():
             counter += 1
             yield "data: {}\n\n".format(counter)
     return Response(eventStream(), mimetype="text/event-stream")
-    
-    
-if __name__ == "__main__":
-    app.debug = True
+
+
+def main():
+    """Entry point for the pyz archive"""
     app.run(threaded=True)
+
+
+if __name__ == "__main__":
+    main()
