@@ -17,3 +17,6 @@ class Btag:
     def for_api(self):
         """Return the btag formatted for the API"""
         return "{}-{}".format(self.name, self.discriminator)
+
+    def __str__(self):
+        return self.to_string()

@@ -8,6 +8,9 @@ import pkgutil
 import asyncio
 import bot
 
+from btag import Btag
+from careerstats import CareerDatabase
+
 import jinja2
 from quart import Quart
 from quart import send_from_directory, Response, request
@@ -36,26 +39,32 @@ class GameLobby:
     def __init__(self):
         self.messageBus = MessageBus()
         self.lobbyPlayers = [
-            {
+            {   # Feeniks is high rank
                 "id": "discord.0",
-                "title": "player A",
+                "title": "Feeniks",
                 "group": "waiting",
                 "selectedRoles": ["tank", "support"],
-                "profileData": getOverwatchProfile("bnet.0"),
+                "profileData": getOverwatchProfile("Feeniks#21541"),
             },
-            {
+            {   # Joshi has placed on all roles
                 "id": "discord.1",
-                "title": "player B",
+                "title": "SuperJoshi94",
                 "group": "waiting",
                 "selectedRoles": ["damage"],
-                "profileData": getOverwatchProfile("bnet.1"),
+                "profileData": getOverwatchProfile("SuperJoshi94#2645"),
+            },
+            {   # Lio has placed on all roles but no public profile
+                "id": "discord.2",
+                "title": "LioKioNio",
+                "group": "waiting",
+                "profileData": getOverwatchProfile("LioKioNio#2969"),
             },
             {
-                "id": "discord.2",
-                "title": "player C",
+                "id": "discord.3",
+                "title": "flasheart",
                 "group": "waiting",
                 "selectedRoles": ["tank", "damage", "support"],
-                "profileData": getOverwatchProfile("bnet.2"),
+                "profileData": getOverwatchProfile("flasheart#21119"),
             },
         ]
 
@@ -180,8 +189,7 @@ class GameLobby:
             _ = self.lobbyPlayers.pop(ind)
             return True
 
-
-def getOverwatchProfile(bnetId):
+def _getOverwatchProfile(bnetId):
     profile = {
         "tag": bnetId,
         "overview": {
@@ -203,6 +211,10 @@ def getOverwatchProfile(bnetId):
         },
     }
     return profile
+
+careerDatabase = CareerDatabase()
+def getOverwatchProfile(btag):
+    return careerDatabase.getStats(Btag(btag)).__getFormattedHack__()
 
 
 
