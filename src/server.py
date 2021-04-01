@@ -4,9 +4,11 @@ from queue import Queue
 import json
 import time
 import os
+import pkgutil
 
+import jinja2
 from flask import Flask
-from flask import send_from_directory, render_template, Response, request
+from flask import send_from_directory, Response, request
 
 
 class MessageBus:
@@ -180,11 +182,26 @@ def getOverwatchProfile(bnetId):
 class EscapedFlask(Flask):
     jinja_options = Flask.jinja_options.copy()
     jinja_options.update(dict( variable_start_string='%%', variable_end_string='%%'))
-app = EscapedFlask(__name__, template_folder = os.path.join("..", "templates"))
+# app = EscapedFlask(__name__, template_folder = os.path.join("..", "templates"))
+app = EscapedFlask(__name__)
 
 
 lobby = GameLobby()
-    
+template = jinja2.Environment()
+
+
+def load_template(name):
+    import sys
+    data = pkgutil.get_data(__name__, os.path.join('templates', name))
+    return data
+
+
+def render_template(name, **kwargs):
+    data = load_template(name).decode()
+    print(data)
+    tpl = template.from_string(data)
+    return tpl.render(**kwargs)
+
 @app.route('/')
 def root():
     #message_queue.put_nowait("event: new-client\ndata: {}\n\n")
