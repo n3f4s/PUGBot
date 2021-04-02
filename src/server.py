@@ -232,8 +232,11 @@ def boradcastLobbyUpdates():
         while True:
             msg = listener.get()
             yield "data: {}\n\n".format(msg)
-    return Response(stream(), mimetype="text/event-stream")
-    
+   response = Response(stream(), mimetype="text/event-stream")
+   response.headers['Cache-Control'] = 'no-cache';
+   response.headers['X-Accel-Buffering'] = 'no';
+   return response
+   
 @app.route('/lobbyupdates', methods = ['POST'])
 def processLobbyUpdates():
     msg = request.data.decode("utf-8")
