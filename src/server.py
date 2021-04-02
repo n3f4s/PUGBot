@@ -225,15 +225,15 @@ async def root():
 @app.route('/lobbyupdates', methods=['GET'])
 async def boradcastLobbyUpdates():
     def stream():
-       listener = lobby.listenForUpdates()  # returns a queue.Queue
-       while True:
-           msg = listener.get()
-           yield "data: {}\n\n".format(msg)
+        listener = lobby.listenForUpdates()  # returns a queue.Queue
+        while True:
+            msg = listener.get()
+            yield "data: {}\n\n".format(msg)
     response = Response(stream(), mimetype="text/event-stream")
     response.headers['Cache-Control'] = 'no-cache';
     response.headers['X-Accel-Buffering'] = 'no';
     return response
-   
+
 @app.route('/lobbyupdates', methods=['POST'])
 async def processLobbyUpdates():
     msg = await request.data.decode("utf-8")
