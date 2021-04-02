@@ -20,9 +20,11 @@ class BackendActor(pykka.ThreadingActor):
         if isinstance(message, str):
             print(message)
 
-backend = BackendActor.start()
-client = bot.MyClient(backend)
-client.run(os.environ['DISCORD_BOT_TOKEN'])
+server.main()
+
+# backend = BackendActor.start()
+# client = bot.MyClient(backend)
+# client.run(os.environ['DISCORD_BOT_TOKEN'])
 # bot = BotActor.start(backend)
 # backend.tell("Youpi")
 # bot.tell("Youpi")
