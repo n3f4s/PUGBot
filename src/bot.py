@@ -8,10 +8,10 @@ import logging
 from typing import Dict, List
 import discord
 from guildconf import GuildConfig, LobbyVC
+import server
 from btag import Btag
 
 # TODO:
-# 2- setup the service file in chocolytech with the appropriate auth
 # 2.5- github actions & secrets -> CI for testing and linting
 # 3- logging
 # 3.4- test
@@ -40,19 +40,18 @@ class PUGPlayerStatus:
         self.is_registered = False
 
 
-def player_joined(player: discord.Member, tags: List[Btag], lobby: discord.VoiceChannel):
-    pass
-
-
 class MyClient(discord.Client):
     """Set up and log bot in discord"""
 
-    logger = logging.getLogger("Bot")
-    logger.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('[%(asctime)s] [%(name)s] [%(levelname)s]:  %(message)s')
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    def __init__(self, lobby: server.GameLobby):
+        super().__init__()
+        self.logger = logging.getLogger("Bot")
+        self.logger.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('[%(asctime)s] [%(name)s] [%(levelname)s]:  %(message)s')
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        self.lobby = lobby
 
     players: Dict[int, PUGPlayerStatus] = {}
 
@@ -82,7 +81,7 @@ class MyClient(discord.Client):
                 self.logger.debug('Notifying backend of new player %s joining VC for the first time',
                                   message.author.display_name)
                 player.is_registered = True
-                player_joined(player.member, player.btags, player.lobby)
+                self.lobby.playerJoin(player.member.id, player.btags[0])
             await message.channel.send("{} is registered with {}"
                                        .format(message.author.display_name,
                                                ", ".join([e.to_string() for e in self.players[message.author.id].btags])))
@@ -126,7 +125,7 @@ class MyClient(discord.Client):
         else:
             if self.players[mem.id].is_registered:
                 self.players[mem.id].lobby = after.channel
-                player_joined(mem, self.players[mem.id].btags, after.channel)
+                self.lobbyplayerJoin(mem.id, self.players[mem.id].btags[0])
             else:
                 self._send_registration_dm(mem, after)
 
