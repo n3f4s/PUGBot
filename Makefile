@@ -12,7 +12,7 @@ OBJECTS       := $(patsubst $(SRCDIR)/%,$(TARGETDIR)/%,$(SOURCES:.py=.py))
 
 ALL: $(TARGET).pyz
 
-$(TARGET).pyz: TEMPLATES RANKS $(OBJECTS)
+$(TARGET).pyz: TEMPLATES ASSETS RANKS $(OBJECTS)
 	$(PYTHON) -m zipapp $(TARGETDIR) -p '/usr/bin/env python3' -o $(TARGET).pyz
 
 INSTALL:
@@ -23,6 +23,9 @@ RANKS: ranks.json $(SRCDIR)/helper/rank_gen.py
 
 TEMPLATES:
 	cp -r templates $(TARGETDIR)/
+
+ASSETS:
+	cp -r assets $(TARGETDIR)/
 
 $(TARGETDIR)/%.py: $(SRCDIR)/%.py
 	cp $< $@
