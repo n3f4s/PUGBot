@@ -201,7 +201,7 @@ def load_template(name):
     data = pkgutil.get_data(__name__, os.path.join('templates', name))
     return data
 
-def render_template_test(name, **kwargs):
+def render_template_if_fail(name, **kwargs):
     data = load_template(name).decode()
     tpl = templateLoader.from_string(data)
     return tpl.render(**kwargs)
@@ -217,7 +217,7 @@ def render_template(name, **kwargs):
             tpl = templateLoader.get_template(name)
             return tpl.render(**kwargs)
         except:
-            return render_template_test(name, **kwargs)
+            return render_template_if_fail(name, **kwargs)
 
 
 @app.route('/')
