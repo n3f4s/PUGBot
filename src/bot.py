@@ -3,7 +3,7 @@ Contains the main functionnality of the bot
 and what will be imported to run it
 """
 
-import os, sys
+import sys
 import logging
 from typing import Dict, List
 import discord
@@ -159,5 +159,3 @@ class MyClient(discord.Client):
                 self._handle_leaving_lobby(mem, before, after)
 
 
-client = MyClient()
-client.run(os.environ['DISCORD_BOT_TOKEN'])
