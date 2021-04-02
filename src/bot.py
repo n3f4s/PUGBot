@@ -7,6 +7,7 @@ import sys
 import logging
 from typing import Dict, List
 import discord
+from pykka import ActorRef
 from guildconf import GuildConfig, LobbyVC
 import server
 from btag import Btag
@@ -40,10 +41,15 @@ class PUGPlayerStatus:
         self.is_registered = False
 
 
+class PlayerJoined:
+    def __init__(self, player: str, btags: List[Btag]):
+        self.player = player
+        self.btags = btags
+
 class MyClient(discord.Client):
     """Set up and log bot in discord"""
 
-    def __init__(self, lobby: server.GameLobby):
+    def __init__(self, ref: ActorRef):
         super().__init__()
         self.logger = logging.getLogger("Bot")
         self.logger.setLevel(logging.DEBUG)
@@ -51,7 +57,10 @@ class MyClient(discord.Client):
         handler = logging.StreamHandler(sys.stdout)
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
-        self.lobby = lobby
+        self.ref = ref
+
+    def player_joined(self, player: discord.Member, tags: List[Btag], lobby: discord.VoiceChannel):
+        self.ref.tell(PlayerJoined(player.id, tags))
 
     players: Dict[int, PUGPlayerStatus] = {}
 
@@ -81,7 +90,7 @@ class MyClient(discord.Client):
                 self.logger.debug('Notifying backend of new player %s joining VC for the first time',
                                   message.author.display_name)
                 player.is_registered = True
-                self.lobby.playerJoin(player.member.id, player.btags[0])
+                self.player_joined(player.member, player.btags, player.lobby)
             await message.channel.send("{} is registered with {}"
                                        .format(message.author.display_name,
                                                ", ".join([e.to_string() for e in self.players[message.author.id].btags])))
@@ -89,7 +98,7 @@ class MyClient(discord.Client):
     async def on_message(self, message):
         """Execute when received message"""
         if isinstance(message.channel, discord.DMChannel) and not message.author.bot:
-            self.on_dm(message)
+            await self.on_dm(message)
 
     def _come_from_team_vc(self, guild: int, before: int, after: int) -> bool:
         """Test if the player is moving from a team VC to the corresponding lobby VC"""
@@ -100,12 +109,12 @@ class MyClient(discord.Client):
 
     async def _send_registration_dm(self, mem: discord.Member, after: discord.VoiceChannel):
         self.players[mem.id] = PUGPlayerStatus(mem, after, [])
-        self.logger.info('Registering %s for lobby %s', mem.name, after.name)
+        self.logger.info('Registering %s for lobby %s', mem.name, after.channel.name)
         dm_chan = await mem.create_dm()
         await dm_chan.send("Give me your battle tag:")
 
     # FIXME: don't assume that before and after guild are the same
-    def _handle_joining_lobby(self, mem: discord.Member,
+    async def _handle_joining_lobby(self, mem: discord.Member,
                               before: discord.VoiceState,
                               after: discord.VoiceState):
         """
@@ -115,17 +124,18 @@ class MyClient(discord.Client):
         - If has status and is_registered, change lobby and notify
         - If has status and not is_registered, re-send DM
         """
-        before_id = before.channel.id
+        before_id = before.channel
         after_id = after.channel.id
-        guild_id = before.channel.guild.id
-        if self._come_from_team_vc(guild_id, before_id, after_id):
+        guild_id = after.channel.guild.id
+        if before_id and self._come_from_team_vc(guild_id, before_id.id, after_id):
             pass
         elif mem.id not in self.players:
-            self._send_registration_dm(mem, after)
+            await self._send_registration_dm(mem, after)
         else:
             if self.players[mem.id].is_registered:
                 self.players[mem.id].lobby = after.channel
-                self.lobbyplayerJoin(mem.id, self.players[mem.id].btags[0])
+                self.player_joined(mem, self.players[mem.id].btags, after.channel)
+
             else:
                 self._send_registration_dm(mem, after)
 
@@ -152,10 +162,8 @@ class MyClient(discord.Client):
         if after.channel:
             is_lobby_vc = after.channel.id in [vc.lobby for vc in CONFIG[after.channel.guild.id].lobbies]
             if is_lobby_vc:
-                self._handle_joining_lobby(mem, before, after)
+                await self._handle_joining_lobby(mem, before, after)
         elif before.channel:
-            is_lobby_vc = before.channel.id in [vc.lobby for vc in CONFIG[after.channel.guild.id].lobbies]
+            is_lobby_vc = before.channel.id in [vc.lobby for vc in CONFIG[before.channel.guild.id].lobbies]
             if is_lobby_vc:
                 self._handle_leaving_lobby(mem, before, after)
-
-
