@@ -275,7 +275,7 @@ def ssetestevents():
 
 def main():
     """Entry point for the pyz archive"""
-    app.run(threaded=True)
+    app.run(threaded=True, port=63083)
 
 
 if __name__ == "__main__":
