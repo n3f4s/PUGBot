@@ -13,7 +13,7 @@ OBJECTS       := $(patsubst $(SRCDIR)/%,$(TARGETDIR)/%,$(SOURCES:.py=.py))
 ALL: $(TARGET).pyz
 
 $(TARGET).pyz: TEMPLATES RANKS $(OBJECTS)
-	$(PYTHON) -m zipapp $(TARGETDIR) -p '/usr/bin/env python3' -m "server:main" -o $(TARGET).pyz
+	$(PYTHON) -m zipapp $(TARGETDIR) -p '/usr/bin/env python3' -o $(TARGET).pyz
 
 INSTALL:
 	$(PYTHON) -m pip install -r requirements.txt -t $(TARGETDIR)

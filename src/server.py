@@ -176,9 +176,18 @@ def getOverwatchProfile(bnetId):
     }
     return profile
     
+class EscapedFlask(Flask):
+    jinja_options = Flask.jinja_options.copy()
+    jinja_options.update(dict( variable_start_string='%%', variable_end_string='%%'))
 
 
-app = Flask(__name__)
+def make_app():
+    """ Generate the app object with the right options depending on how we execute the script"""
+    if __name__ == "__main__":
+        return EscapedFlask(__name__, template_folder = os.path.join("..", "templates"))
+    else:
+        return Flask(__name__)
+app = make_app()
 
 lobby = GameLobby()
 templateLoader = jinja2.Environment(
@@ -188,9 +197,15 @@ templateLoader = jinja2.Environment(
     variable_end_string='%%'
 )
 
+
 def render_template(name, **kwargs):
-    tpl = templateLoader.get_template(name)
-    return tpl.render(**kwargs)
+    """ Look for template either in file or archive depending on how we execute the script """
+    if __name__ == "__main__":
+        from flask import render_template
+        return render_template(name, **kwargs)
+    else:
+        tpl = templateLoader.get_template(name)
+        return tpl.render(**kwargs)
 
 
 @app.route('/')
