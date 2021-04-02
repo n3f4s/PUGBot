@@ -11,14 +11,14 @@ from guildconf import GuildConfig, LobbyVC
 from btag import Btag
 
 # TODO:
-# 1- setup the service file in chocolytech with the appropriate auth (done?)
-# 2- logging
-# 3- test
+# 2- setup the service file in chocolytech with the appropriate auth
+# 2.5- github actions & secrets -> CI for testing and linting
+# 3- logging
+# 3.4- test
 # 3.5- fault resistance
 # 4- Persistence
 # 5- integrate with backend
 # 6- Actual DB
-# 10- github actions & secrets -> CI for testing and linting
 
 CONFIG = {
     823930184067579954: GuildConfig(823930184067579954,
