@@ -203,7 +203,7 @@ def load_template(name):
 
 def render_template_test(name, **kwargs):
     data = load_template(name).decode()
-    tpl = template.from_string(data)
+    tpl = templateLoader.from_string(data)
     return tpl.render(**kwargs)
 
 
