@@ -250,14 +250,14 @@ async def processLobbyUpdates():
 
 @app.route('/favicon.ico')
 async def favicon():
-    return send_from_directory(os.path.join("..", "assets"),
+    return await send_from_directory(os.path.join("..", "assets"),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 
 @app.route('/assets/<path:path>')
 async def send_assets(path):
     if __name__ == "__main__":
-        return send_from_directory(os.path.join("..", "assets"), path)
+        return await send_from_directory(os.path.join("..", "assets"), path)
     else:
         return pkgutil.get_data(__name__, os.path.join("assets", path))
 
