@@ -198,7 +198,7 @@ templateLoader = jinja2.Environment(
 )
 
 def load_template(name):
-    data = pkgutil.get_data(name, os.path.join('templates', name))
+    data = pkgutil.get_data(__name__, os.path.join('templates', name))
     return data
 
 def render_template_test(name, **kwargs):
