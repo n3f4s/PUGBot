@@ -197,6 +197,15 @@ templateLoader = jinja2.Environment(
     variable_end_string='%%'
 )
 
+def load_template(name):
+    data = pkgutil.get_data(name, os.path.join('templates', name))
+    return data
+
+def render_template_test(name, **kwargs):
+    data = load_template(name).decode()
+    tpl = template.from_string(data)
+    return tpl.render(**kwargs)
+
 
 def render_template(name, **kwargs):
     """ Look for template either in file or archive depending on how we execute the script """
@@ -204,8 +213,11 @@ def render_template(name, **kwargs):
         from flask import render_template
         return render_template(name, **kwargs)
     else:
-        tpl = templateLoader.get_template(name)
-        return tpl.render(**kwargs)
+        try:
+            tpl = templateLoader.get_template(name)
+            return tpl.render(**kwargs)
+        except:
+            return render_template_test(name, **kwargs)
 
 
 @app.route('/')
