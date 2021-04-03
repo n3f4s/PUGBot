@@ -5,6 +5,8 @@ import json
 import time
 import os
 import pkgutil
+import asyncio
+import bot
 
 import jinja2
 from quart import Quart
@@ -234,7 +236,7 @@ async def boradcastLobbyUpdates():
    
 @app.route('/lobbyupdates', methods=['POST'])
 async def processLobbyUpdates():
-    msg = request.data.decode("utf-8")
+    msg = await request.data.decode("utf-8")
 
     # Update lobby
     # TODO: make this not awful
@@ -283,10 +285,23 @@ async def ssetestevents():
     return Response(eventStream(), mimetype="text/event-stream")
 
 
-def main():
-    """Entry point for the pyz archive"""
-    app.run(port=63083)
+async def read_queue(queue: asyncio.Queue):
+    while True:
+        message = await queue.get()
+        if isinstance(message, bot.PlayerJoined):
+            lobby.playerJoin(message.player, message.btags[0].to_string())
+
+
+async def run():
+    await app.run_task(port=63083)
+
+
+async def main(queue: asyncio.Queue):
+    await asyncio.gather(
+        run(),
+        read_queue(queue)
+    )
 
 
 if __name__ == "__main__":
-    main()
+    async.run(main())

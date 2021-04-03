@@ -7,7 +7,7 @@ import sys
 import logging
 from typing import Dict, List
 import discord
-from pykka import ActorRef
+import asyncio
 from guildconf import GuildConfig, LobbyVC
 import server
 from btag import Btag
@@ -49,7 +49,7 @@ class PlayerJoined:
 class MyClient(discord.Client):
     """Set up and log bot in discord"""
 
-    def __init__(self, ref: ActorRef):
+    def __init__(self, ref: asyncio.Queue):
         super().__init__()
         self.logger = logging.getLogger("Bot")
         self.logger.setLevel(logging.DEBUG)
@@ -59,8 +59,8 @@ class MyClient(discord.Client):
         self.logger.addHandler(handler)
         self.ref = ref
 
-    def player_joined(self, player: discord.Member, tags: List[Btag], lobby: discord.VoiceChannel):
-        self.ref.tell(PlayerJoined(player.id, tags))
+    async def player_joined(self, player: discord.Member, tags: List[Btag], lobby: discord.VoiceChannel):
+        await self.ref.put(PlayerJoined(player.id, tags))
 
     players: Dict[int, PUGPlayerStatus] = {}
 
@@ -90,7 +90,7 @@ class MyClient(discord.Client):
                 self.logger.debug('Notifying backend of new player %s joining VC for the first time',
                                   message.author.display_name)
                 player.is_registered = True
-                self.player_joined(player.member, player.btags, player.lobby)
+                await self.player_joined(player.member, player.btags, player.lobby)
             await message.channel.send("{} is registered with {}"
                                        .format(message.author.display_name,
                                                ", ".join([e.to_string() for e in self.players[message.author.id].btags])))
@@ -134,7 +134,7 @@ class MyClient(discord.Client):
         else:
             if self.players[mem.id].is_registered:
                 self.players[mem.id].lobby = after.channel
-                self.player_joined(mem, self.players[mem.id].btags, after.channel)
+                await self.player_joined(mem, self.players[mem.id].btags, after.channel)
 
             else:
                 self._send_registration_dm(mem, after)
