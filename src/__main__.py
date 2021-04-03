@@ -13,4 +13,7 @@ async def main():
         client.start(os.environ['DISCORD_BOT_TOKEN'])
     )
 
-asyncio.run(main())
+try:
+    asyncio.run(main())
+except KeyboardInterrupt:
+    print("Received exit, exiting")
