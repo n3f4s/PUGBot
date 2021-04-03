@@ -13,7 +13,8 @@ import server
 from btag import Btag
 
 # TODO:
-# 2.5- github actions & secrets -> CI for testing and linting
+# 1- github actions & secrets -> CI for testing and linting
+# 2- stylecheck
 # 3- logging
 # 3.4- test
 # 3.5- fault resistance
