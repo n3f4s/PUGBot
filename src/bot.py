@@ -90,7 +90,11 @@ class MyClient(discord.Client):
             self.logger.debug('Saving btag %s for %s',
                               message.content,
                               message.author.display_name)
-            player.btags.append(Btag(message.content))
+            try:
+                player.btags.append(Btag(message.content))
+            except:
+                await message.channel.send("Battle tag not understood, please resend it")
+                return
             if not player.is_registered:
                 self.logger.debug('Notifying backend of new player %s joining VC for the first time',
                                   message.author.display_name)
