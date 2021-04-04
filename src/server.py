@@ -236,7 +236,8 @@ async def boradcastLobbyUpdates():
 
 @app.route('/lobbyupdates', methods=['POST'])
 async def processLobbyUpdates():
-    msg = await request.data.decode("utf-8")
+    tmp = await request.data
+    msg = tmp.decode("utf-8")
 
     # Update lobby
     # TODO: make this not awful
