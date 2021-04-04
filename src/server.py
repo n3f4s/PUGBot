@@ -81,6 +81,13 @@ class GameLobby:
         self.messageBus.broadcast(msg)
 
     def playerJoin(self, playerId, bnetId):
+        playerId = str(playerId) # kinda a hack to ensure all types are the same
+        
+        #Check if player already in lobby:
+        if self._findPlayer(playerId):
+            self.playerLeave(playerId) #just remove for now
+        
+        # Create new lobby player
         playerData = {
             "id": playerId,
             "title": playerId,
@@ -92,10 +99,6 @@ class GameLobby:
                     "event": "player-join",
                     "data": {"playerData": playerData},
                 } )
-            print({
-                    "event": "player-join",
-                    "data": {"playerData": playerData},
-                })
             return True
         else:
             return False
@@ -228,7 +231,7 @@ async def boradcastLobbyUpdates():
         listener = lobby.listenForUpdates()  # returns a queue.Queue
         while True:
             msg = listener.get()
-            yield "data: {}\n\n".format(msg)
+            yield "data: {}\n\n".format(msg).encode('utf-8')
     response = Response(stream(), mimetype="text/event-stream")
     response.headers['Cache-Control'] = 'no-cache';
     response.headers['X-Accel-Buffering'] = 'no';
@@ -262,7 +265,11 @@ async def send_assets(path):
     if __name__ == "__main__":
         return await send_from_directory(os.path.join("..", "assets"), path)
     else:
-        return pkgutil.get_data(__name__, os.path.join("assets", path))
+        try:
+            return pkgutil.get_data(__name__, os.path.join("assets", path))
+        except:
+            # hack to get igit at to work without compilation
+            return pkgutil.get_data(__name__, os.path.join("..", "assets", path))
 
 
 # Test stuff for testing
@@ -293,13 +300,13 @@ async def read_queue(queue: asyncio.Queue):
             lobby.playerJoin(message.player, message.btags[0].to_string())
 
 
-async def run():
-    await app.run_task(port=63083)
+async def run(port):
+    await app.run_task(port=port)
 
 
-async def main(queue: asyncio.Queue):
+async def main(queue: asyncio.Queue, port=8080):
     await asyncio.gather(
-        run(),
+        run(port),
         read_queue(queue)
     )
 
