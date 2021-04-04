@@ -14,8 +14,6 @@ from guildconf import GuildConfig, LobbyVC
 from btag import Btag
 
 # TODO:
-# 2- stylecheck
-# 3- logging
 # 3.3- test
 # 3.4- handle player leaving
 # 3.5- fault resistance
