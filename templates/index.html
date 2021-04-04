@@ -61,6 +61,7 @@
     }
     
     .player-card {
+      position: relative;
       background-color: #876;
       color: #fff;
       height: 80px;
@@ -70,7 +71,6 @@
     }
     
     .player-card.dummy {
-      position: relative;
       background-color: #eee;
       color: #999;
     }
@@ -101,6 +101,20 @@
     
     .player-card .card-header .playerID {
       font-size: 8pt;
+    }
+    
+    .player-card .role-selector {
+      float: right;
+      margin: 5px;
+    }
+    
+    .player-card .role-selector img {
+      opacity: 0.3;
+      width: 20px;
+    }
+    
+    .player-card .role-selector img.selected {
+      opacity: 1.0;
     }
     
     .role-card {
@@ -248,6 +262,28 @@
   </style>
   
   <script type="text/javascript">
+  
+  
+    // https://stackoverflow.com/questions/13045419/javascript-is-there-an-isobject-function-like-isarray
+    function isObject (arg) { return Object.prototype.toString.call(arg).indexOf('Object') !== -1; }
+
+    function mergeDeep(target, ...sources) {
+      if (!sources.length) return target;
+      const source = sources.shift();
+
+      if (isObject(target) && isObject(source)) {
+        for (const key in source) {
+          if (isObject(source[key])) {
+            if (!target[key]) Object.assign(target, { [key]: {} });
+            mergeDeep(target[key], source[key]);
+          } else {
+            Object.assign(target, { [key]: source[key] });
+          }
+        }
+      }
+
+      return mergeDeep(target, ...sources);
+    }
   
     // https://stackoverflow.com/questions/27078285/simple-throttle-in-js
     function throttle (callback, limit, immediate, trailing) {
@@ -445,15 +481,26 @@
           
           swapPlayer(evt) {
             // TODO: Change this to use literals rather than raw event
-            const playerID = evt.sourceID;//evt.dataTransfer.getData("playerID");
+            const playerID = evt.sourceID;
             const player = this.players.find((player) => player.id == playerID);
             
-            const targetID = evt.targetID;//dataTransfer.getData("targetID");
+            const targetID = evt.targetID;
             const targplayer = this.players.find((player) => player.id == targetID);
             
             const group1 = player.group;
             player.group = targplayer.group;
             targplayer.group = group1;
+          },
+          
+          updatePlayer(evt) {
+            const playerID = evt.playerID;
+            const player = this.players.find((player) => player.id == playerID);
+            
+            const updateData = evt.updateData;
+            
+            console.log(player);
+            console.log(updateData);
+            Object.assign(player, updateData);
           },
           
           playerJoin(evt) {
@@ -476,6 +523,7 @@
         created() {
           bus.$on('move-player', (evt) => { this.movePlayer(evt); });
           bus.$on('swap-player', (evt) => { this.swapPlayer(evt); });
+          bus.$on('update-player', (evt) => { this.updatePlayer(evt); });
           bus.$on('player-join', (evt) => { this.playerJoin(evt); });
           bus.$on('player-leave', (evt) => { this.playerLeave(evt); });
         }
@@ -517,7 +565,7 @@
           v-for="playerd in playerGroup"
           :key="playerd.title"
           :player="playerd"
-          :role="role"
+          :assignedRole="role"
           @dragenter="exitDrag()"
           @dragexit="enterDrag()">
         </player-card>
@@ -557,7 +605,7 @@
     Vue.component('player-card', {
       props: {
         player: { type: Object, required: true },
-        role: {}
+        assignedRole: {}
        },
       
       data() {
@@ -568,15 +616,20 @@
       },
       
       computed: {
-        roles() {
-          if (Array.isArray(this.role)) {
-            return this.role;
-          } else if (Object.prototype.toString.call(this.role) === '[object String]') {
-            return [ this.role ];
+        assignedRoles() {
+          if (Array.isArray(this.assignedRole)) {
+            return this.assignedRole;
+          } else if (Object.prototype.toString.call(this.assignedRole) === '[object String]') {
+            return [ this.assignedRole ];
           } else {
-            return [ "tank", "damage", "support" ];
+            return this.allRoles;
           }
-        }
+        },
+        selectedRoles() { return this.player.selectedRoles; },
+        relevantRoles() {
+          return this.assignedRoles.filter(value => this.selectedRoles.includes(value));
+        },
+        allRoles() { return [ "tank", "damage", "support" ]; },
       },
       
       template: `
@@ -598,12 +651,21 @@
 
           <div class="row">
             <div class="col m12 card-header">
-            <span class="gameID">
-              {{ player.profileData.tag }} 
-            </span>
-            <span class="playerID">
-              ( {{ player.title }} )
-            </span>
+              <span class="gameID">
+                {{ player.profileData.tag }} 
+              </span>
+              <span class="playerID">
+                ( {{ player.title }} ) 
+              </span>
+            
+              <div class="role-selector">
+                <img
+                  v-for="role in allRoles"
+                  :src="'/assets/icons/roles/' + role + '.png'"
+                  :class="[{ selected: player.selectedRoles.includes(role) }]"
+                  @click="toggleRole(player, role)"
+                />
+              </div>
             </div>
             
             <div class="col m12">
@@ -613,10 +675,10 @@
                   border="0"
                   cellspacing="0"
                   cellpadding="0">
-                  <td v-for="roled in roles" style="padding-left: 5px;">
+                  <td v-for="role in relevantRoles" style="padding-left: 5px;">
                     <role-card
-                      :role="roled"
-                      :role-data="player.profileData.overview[roled]">
+                      :role="role"
+                      :role-data="player.profileData.overview[role]">
                     </role-card>
                   </td>
                 </table>
@@ -645,6 +707,24 @@
           bus.send('swap-player', { sourceID: sourceID, targetID: player.id });
           evt.stopPropagation();
         },
+        
+        toggleRole(player, role) {
+          var roles = [...player.selectedRoles];
+          const index = roles.indexOf(role);
+          
+          if (index > -1) {
+            roles.splice(index, 1);
+          } else {
+            roles.push(role);
+          }
+          // Sort them
+          roles = this.allRoles.filter(value => roles.includes(value));
+          
+          var updateData = { selectedRoles: roles };
+          bus.send('update-player', { playerID: player.id, updateData: updateData });
+          
+        },
+        
         testplayerremove(player) { bus.send('player-leave', { targetID: player.id }); },
         testplayerclone(player) {
           var clone = Object.assign({}, player);

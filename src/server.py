@@ -40,18 +40,21 @@ class GameLobby:
                 "id": "discord.0",
                 "title": "player A",
                 "group": "waiting",
+                "selectedRoles": ["tank", "support"],
                 "profileData": getOverwatchProfile("bnet.0"),
             },
             {
                 "id": "discord.1",
                 "title": "player B",
                 "group": "waiting",
+                "selectedRoles": ["damage"],
                 "profileData": getOverwatchProfile("bnet.1"),
             },
             {
                 "id": "discord.2",
                 "title": "player C",
                 "group": "waiting",
+                "selectedRoles": ["tank", "damage", "support"],
                 "profileData": getOverwatchProfile("bnet.2"),
             },
         ]
@@ -68,6 +71,11 @@ class GameLobby:
 
         elif msg_type == "swap-player":
             self._swapPlayer(msg_data["sourceID"], msg_data["targetID"])
+            self._broadcast(msg)
+            return True
+            
+        elif msg_type == "update-player":
+            self._updatePlayerData(msg_data["playerID"], msg_data["updateData"])
             self._broadcast(msg)
             return True
 
@@ -92,6 +100,7 @@ class GameLobby:
             "id": playerId,
             "title": playerId,
             "group": "waiting",
+            "selectd-roles": ["tank", "damage", "support"],
             "profileData": getOverwatchProfile(bnetId)
         }
         if self._addPlayer(playerData):
@@ -131,7 +140,30 @@ class GameLobby:
         player1group = player1['group']
         player1['group'] = player2['group']
         player2['group'] = player1group
-
+        
+    def _updatePlayerData(self, playerId, playerData):
+        ind = self._findPlayer(playerId, True)
+        if not ind is None:
+            self.lobbyPlayers[ind].update(playerData)
+            return True
+        return False
+        
+    def _updatePlayerValue(self, playerId, key, value):
+        player = self._findPlayer(playerId)
+        if not player is None:
+            curr_item = player
+            ks = key.split(".")
+            for k in ks[:-1]:
+                itm = curr_item.get(k)
+                if not itm is None:
+                    curr_item = itm
+                else:
+                    curr_item[k] = {}
+                    curr_item = curr_item[k]
+            itm[ks[-1]] = value
+            return True
+        return False
+           
     def _addPlayer(self, playerData):
         if self._findPlayer(self, playerData["id"]) is None:
             #TODO: Sanitise playerData
@@ -173,15 +205,15 @@ def getOverwatchProfile(bnetId):
     return profile
 
 
-class EscapedFlask(Quart):
-    jinja_options = Quart.jinja_options.copy()
-    jinja_options.update(dict( variable_start_string='%%', variable_end_string='%%'))
-
 
 def make_app():
     """ Generate the app object with the right options depending on how we execute the script"""
     if __name__ == "__main__":
-        return EscapedFlask(__name__, template_folder = os.path.join("..", "templates"))
+        class EscapedQuart(Quart):
+            jinja_options = Quart.jinja_options.copy()
+            jinja_options.update(dict( variable_start_string='%%', variable_end_string='%%'))
+            
+        return EscapedQuart(__name__, template_folder = os.path.join("..", "templates"))
     else:
         return Quart(__name__)
 
@@ -210,7 +242,7 @@ def render_template_if_fail(name, **kwargs):
 def render_template(name, **kwargs):
     """ Look for template either in file or archive depending on how we execute the script """
     if __name__ == "__main__":
-        from flask import render_template
+        from quart import render_template
         return render_template(name, **kwargs)
     else:
         try:
@@ -222,16 +254,18 @@ def render_template(name, **kwargs):
 
 @app.route('/')
 async def root():
-    return render_template('index.html', lobbyPlayers=lobby.lobbyPlayers)
+    return await render_template('index.html', lobbyPlayers=lobby.lobbyPlayers)
 
 
 @app.route('/lobbyupdates', methods=['GET'])
-async def boradcastLobbyUpdates():
+async def broadcastLobbyUpdates():
+
     def stream():
         listener = lobby.listenForUpdates()  # returns a queue.Queue
         while True:
             msg = listener.get()
             yield "data: {}\n\n".format(msg).encode('utf-8')
+            
     response = Response(stream(), mimetype="text/event-stream")
     response.headers['Cache-Control'] = 'no-cache';
     response.headers['X-Accel-Buffering'] = 'no';
@@ -263,34 +297,13 @@ async def favicon():
 @app.route('/assets/<path:path>')
 async def send_assets(path):
     if __name__ == "__main__":
-        return await send_from_directory(os.path.join("..", "assets"), path)
+        return await send_from_directory(os.path.join("assets"), path)
     else:
         try:
             return pkgutil.get_data(__name__, os.path.join("assets", path))
         except:
             # hack to get igit at to work without compilation
             return pkgutil.get_data(__name__, os.path.join("..", "assets", path))
-
-
-# Test stuff for testing
-@app.route('/sse-test')
-async def ssetestpage():
-    return render_template('sse_test.html')
-
-
-counter = 0
-
-
-@app.route('/sse-testevents')
-async def ssetestevents():
-    def eventStream():
-        time.sleep(3)
-        while True:
-            global counter
-            time.sleep(0.1)
-            counter += 1
-            yield "data: {}\n\n".format(counter)
-    return Response(eventStream(), mimetype="text/event-stream")
 
 
 async def read_queue(queue: asyncio.Queue):
@@ -312,4 +325,4 @@ async def main(queue: asyncio.Queue, port=8080):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(asyncio.Queue()))
+    app.run(debug=True)
