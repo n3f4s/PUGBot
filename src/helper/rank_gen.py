@@ -15,11 +15,11 @@ with open(filename) as json_file:
         with open("{}/{}.py".format(dir, name.lower()), "w") as target:
             target.write("""# Auto Generated file
 class {}:
-    def icon_url():
+    def icon_url(self):
         return "{}"
-    def name():
+    def name(self):
         return "{}"
-    def min_sr():
+    def min_sr(self):
         return {}
-    def max_sr():
+    def max_sr(self):
         return {}""".format(name, entry["icon"], name, entry["min"], entry["max"], ))

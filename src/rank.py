@@ -6,14 +6,14 @@ from abc import ABC, abstractmethod
 
 class Rank(ABC):
     @abstractmethod
-    def icon_url():
+    def icon_url(self):
         pass
     @abstractmethod
-    def to_string():
+    def to_string(self):
         pass
     @abstractmethod
-    def min_sr():
+    def min_sr(self):
         pass
     @abstractmethod
-    def max_sr():
+    def max_sr(self):
         pass
