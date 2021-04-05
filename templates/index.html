@@ -112,6 +112,7 @@
     .player-card .role-selector {
       float: right;
       margin: 5px;
+      font-size: small;
     }
     
     .player-card .role-selector img {
@@ -483,7 +484,7 @@
 
     
     window.addEventListener('load', function () {
-      var app = new Vue({
+      var vueapp = new Vue({
         el: "#app",
         data: {
           players: %% lobbyPlayers|tojson|safe %%,
@@ -563,7 +564,7 @@
 
       data() {
 	      return {
-          isHovered: false
+          isHovered: false,
         }
       },
       
@@ -572,7 +573,13 @@
           //Not sure if we should pass all players, or just that group
           return this.players.filter((player) => player.group === this.groupId);
         },
-        emptySlots() { return this.maxPlayers ? this.maxPlayers - this.playerGroup.length : 1; }
+        emptySlots() { return this.maxPlayers ? this.maxPlayers - this.playerGroup.length : 1; },
+        playerSRs() {
+          var ps = this.playerGroup; // Hack to force recomputation
+          return this.$children.map((pcard) => (pcard.SR) );
+          // alternate way
+          //return Object.keys(this.$refs).map((ref) => (this.$refs[ref][0].avrSR) );
+        },
       },
       
       template: `
@@ -582,8 +589,10 @@
         @dragexit="exitDrag()"
         @drop="onDrop($event)"
         @dragover.prevent>
+        
         <player-card
           v-for="playerd in playerGroup"
+          :ref="playerd.id"
           :key="playerd.title"
           :player="playerd"
           :assignedRole="role"
@@ -591,6 +600,7 @@
           @dragexit="enterDrag()">
         </player-card>
 
+        
         <div class="card-panel player-card dummy" v-if="maxPlayers" v-for="n in emptySlots">
            {{ name }} {{n}}
            <img
@@ -613,6 +623,8 @@
             const sourceID = evt.dataTransfer.getData("playerID"); 
             bus.send('move-player', { sourceID: sourceID, targetGroup: this.groupId });
             evt.stopPropagation(); // prevent event being caught by container
+            
+            this.$forceUpdate();
           } else {
              // TODO: replace with bus err
              console.log("ERR: Position already full", );
@@ -651,6 +663,10 @@
           return this.assignedRoles.filter(value => this.selectedRoles.includes(value));
         },
         allRoles() { return [ "tank", "damage", "support" ]; },
+        SR() {
+          const roles = this.relevantRoles;
+          return roles.reduce((a, b) => (a + this.player.profileData.overview[b].sr), 0) / roles.length;
+        },
       },
       
       template: `
@@ -676,10 +692,11 @@
                 {{ player.profileData.tag }} 
               </span>
               <span class="playerID">
-                ( {{ player.title }} ) 
+                ( {{ player.title }} )
               </span>
             
-              <div class="role-selector">
+              <div class="role-selector valign-wrapper">
+                {{ SR.toFixed(0) }}
                 <img
                   v-for="role in allRoles"
                   :src="'/assets/icons/roles/' + role + '.png'"
@@ -749,14 +766,15 @@
         
         updateSR(player, role, value) {
           const val = parseInt(value, 10);
-          player.profileData.overview[role].sr = val;
           
-          // send update
-          const pd = { profileData: Object.assign({}, this.player.profileData) };
-          bus.send('update-player', { playerID: player.id, updateData: pd } );
+          if (val > 0) {
+            // send update
+            player.profileData.overview[role].sr = val;
+            const pd = { profileData: Object.assign({}, this.player.profileData) };
+            bus.send('update-player', { playerID: player.id, updateData: pd } );
+          }
         },
        
-        
         testplayerremove(player) { bus.send('player-leave', { targetID: player.id }); },
         testplayerclone(player) {
           var clone = Object.assign({}, player);
@@ -828,7 +846,6 @@
             :src="'/assets/icons/roles/' + role + '.png'"
           />
           
-
           <div class="role-sr">
             <img
               class="rank-icon"
@@ -853,12 +870,51 @@
 
         </div>`,
         
-      methods: {
-      },
-        
+      methods: { },
     });
     
-    // Editable helper
+    
+    Vue.component('sr-counter', {
+      props: {
+        track: {type: Array, required: true },
+      },
+      
+      computed: {
+        averageSr() {
+          var refs = Object.keys(this.$root.$refs);
+          refs = refs.filter(ref => this.track.includes(ref));
+          var srs = refs.map((ref) => (this.$root.$refs[ref][0].playerSRs));
+          
+          //console.log("Recomputing SRs", srs);
+          var tot = 0;
+          var cnt = 0;
+          for (i = 0; i < srs.length; i++) {
+            var srsinner = srs[i];
+            for (j = 0; j < srs.length; j++) {
+              var val = srsinner[i];
+              if (val > 0) {
+                tot += val;
+                cnt++;
+              }
+            }
+          }          
+          
+          return tot / cnt;
+        },
+      },
+
+      template: `
+        <div>
+          AVR: {{ averageSr }}
+        </div>`,
+        
+      methods: {
+      
+      },
+    });
+    
+    
+    // Helper for editable field
     // https://stackoverflow.com/questions/45050119/click-to-edit-text-field-with-vue
     Vue.component('editable',{
       props:["value"],
@@ -914,6 +970,7 @@
           <div v-for="team in teams" class="col l2 push-l1 m3" :class="'team-'+team" >
             <div v-for="role in roles">
               <player-group
+                :ref="team+'.'+role+'.1'"
                 :group-id="team+'.'+role+'.1'"
                 :team="team" :role="role"
                 :players="players"
@@ -921,16 +978,17 @@
                 >
               </player-group>
               <player-group
+                :ref="team+'.'+role+'.2'"
                 :group-id="team+'.'+role+'.2'"
                 :team="team" :role="role"
                 :players="players"
                 :max-players="1"
                 >
               </player-group>
+              <sr-counter :track="[ team+'.'+role+'.1', team+'.'+role+'.2' ]" ></sr-counter>
             </div>
             {{ team }}
           </div>
-
         </div>
       </div>
     </div>
