@@ -259,12 +259,52 @@ class MyClient(discord.Client):
         def is_lobby(channel: discord.VoiceChannel) -> bool:
             return (channel.id in [vc.lobby for vc
                                    in CONFIG[channel.guild.id].lobbies])
+        if (not after.channel
+            and (not before.channel
+                 or not self._is_pugs(before.channel))):
+            # We're not leaving a VC related to pugs
+            return
+        if (before.channel
+            and after.channel
+            and not self._is_pugs(before.channel)
+            and not self._is_pugs(after.channel)):
+            # We're moving from and to hannels unrelated to pugs
+            return
+        if (after.channel and not before.channel
+            and not self._is_pugs(after.channel)):
+            # We're joining a channel unrelated to pugs
+            return
 
-        if after.channel:
-            is_lobby_vc = is_lobby(after.channel)
-            if is_lobby_vc:
-                await self._handle_joining_lobby(mem, before, after)
-        elif before.channel:
-            is_lobby_vc = is_lobby(before.channel)
-            if is_lobby_vc:
-                self._handle_leaving_lobby(mem, before, after)
+        if (after.channel
+            and self._is_joining_lobby(after.channel.guild.id,
+                                       before,
+                                       after)):
+            # Joining a lobby for the first time
+            self._on_joining_lobby(mem, before, after)
+
+        if (not (after.channel and self._is_pugs(after.channel))
+            and (before.channel and self._is_pugs(before.channel))):
+            # Leaving a pug voice channel
+            self._on_leaving_lobby(mem)
+            return
+
+        if (after.channel and before.channel
+            and self._is_lobby_team_vc(before.channel, after.channel)):
+            # Rejoining lobby from team channel
+            self._on_back_lobby()
+            return
+
+        if (after.channel and before.channel
+            and self._is_lobby_team_vc(after.channel, before.channel)):
+            # Joining the team VC related to the lobby we were in
+            self._going_team_vc()
+            return
+
+        if (after.channel and before.channel
+            and before.channel in self.all_vc[before.channel.guild.id]
+            and before.channel.id != after.channel.id
+            and not self._is_lobby_team_vc(before.channel, after.channel)
+            and not self._is_lobby_team_vc(after.channel, before.channel)):
+            # Changing lobby
+            self._on_changing_lobby()
+            return
