@@ -48,6 +48,18 @@ class PlayerJoined:
         self.player = player
         self.btags = btags
 
+
+def _invert_lobby_lookup(config: Dict[int, GuildConfig]) -> Dict[int, Dict[int, int]]:
+    res = {}
+    for (gid, cfg) in config.items():
+        tmp = {}
+        for lobby in cfg.lobbies:
+            tmp[lobby.team1] = lobby.lobby
+            tmp[lobby.team2] = lobby.lobby
+        res[gid] = tmp
+    return res
+
+
 class MyClient(discord.Client):
     """Set up and log bot in discord"""
 
@@ -61,9 +73,22 @@ class MyClient(discord.Client):
         self.logger.addHandler(handler)
         self.ref = ref
 
-    async def player_joined(self, player: discord.Member, tags: List[Btag],
-                            lobby: discord.VoiceChannel):
-        """Function handling a player joining a VC for the first time"""
+    players: Dict[int, PUGPlayerStatus] = {}
+    all_vc: Dict[int, List[int]] = {
+        guild: [l for lobby in cfg.lobbies
+                for l in [lobby.lobby, lobby.team1, lobby.team2]]
+        for (guild, cfg) in CONFIG.items()
+    }
+    invert_lobby_lookup = _invert_lobby_lookup(CONFIG)
+
+    async def _on_registration(self, player: discord.Member, tags: List[Btag],
+                               lobby: discord.VoiceChannel):
+        """
+        Function handling a player joining a VC for the first time.
+        Called either after joining a VC
+        if the player is already registered in the DB
+        or when they give their btag to the bot
+        """
         self.logger.info("%s joined lobby %s with batgs %s",
                          player.display_name,
                          lobby.name,
@@ -103,7 +128,7 @@ class MyClient(discord.Client):
                 self.logger.debug('Notifying backend of new player %s joining VC for the first time',
                                   message.author.display_name)
                 player.is_registered = True
-                await self.player_joined(player.member,
+                await self._on_registration(player.member,
                                          player.btags,
                                          player.lobby)
             await message.channel.send("{} is registered with {}"
@@ -161,8 +186,8 @@ class MyClient(discord.Client):
                                  mem.display_name,
                                  after.channel.name)
                 self.players[mem.id].lobby = after.channel
-                await self.player_joined(mem, self.players[mem.id].btags,
-                                         after.channel)
+                await self._on_registration(mem, self.players[mem.id].btags,
+                                            after.channel)
 
             else:
                 self.logger.debug("Sending registration DM to %s",
