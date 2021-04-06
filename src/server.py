@@ -6,7 +6,7 @@ import time
 import os
 import pkgutil
 import asyncio
-import bot
+import messages
 
 from btag import Btag
 from careerstats import CareerDatabase
@@ -336,7 +336,7 @@ async def send_assets(path):
 async def read_queue(queue: asyncio.Queue):
     while True:
         message = await queue.get()
-        if isinstance(message, bot.PlayerJoined):
+        if isinstance(message, messages.PlayerJoined):
             lobby.playerJoin(message.player, message.btags[0].to_string())
 
 
