@@ -876,40 +876,57 @@
     
     Vue.component('sr-counter', {
       props: {
-        track: {type: Array, required: true },
+        track: {type: Array, required: true }, // refs of groups to track
       },
       
       computed: {
         averageSr() {
           var refs = Object.keys(this.$root.$refs);
-          refs = refs.filter(ref => this.track.includes(ref));
+          //refs = refs.filter(ref => this.track.includes(ref));
+          refs = refs.filter(ref => this.match(ref));
           var srs = refs.map((ref) => (this.$root.$refs[ref][0].playerSRs));
           
-          //console.log("Recomputing SRs", srs);
           var tot = 0;
           var cnt = 0;
           for (i = 0; i < srs.length; i++) {
             var srsinner = srs[i];
             for (j = 0; j < srs.length; j++) {
-              var val = srsinner[i];
-              if (val > 0) {
-                tot += val;
-                cnt++;
-              }
+              var val = srsinner[j];
+              if (val > 0) { tot += val; cnt++; }
             }
-          }          
-          
+          }
           return tot / cnt;
         },
       },
 
       template: `
         <div>
-          AVR: {{ averageSr }}
+          AVR: {{ averageSr.toFixed(0) }}
         </div>`,
         
       methods: {
-      
+        match(ref) {
+          for (var i = 0; i < this.track.length; i++) {
+            if (this.matchRule(ref, this.track[i])) { return true; } 
+          }
+          return false; //no matches
+        },
+        matchRule(ref, rule) {
+          // checks if ref matches rule
+          var path1 = ref.split(".")
+          var path2 = rule.split(".")
+          if (path1.length < path2.length) { return false; } // rule longer than ref
+          for (var i = 0; i < path2.length; i++) {
+            if (path2[i] == "*") { return true; } // wildcard
+            if (path1[i] != path2[i]) { return false; } // bad match
+          }
+          // else
+          if (path1.length == path2.length) {
+            return true; // all elements the same
+          } else {
+            return false; // rule shorter than ref with no wildcard
+          }
+        }
       },
     });
     
@@ -985,9 +1002,10 @@
                 :max-players="1"
                 >
               </player-group>
-              <sr-counter :track="[ team+'.'+role+'.1', team+'.'+role+'.2' ]" ></sr-counter>
+              <sr-counter :track="[ team+'.'+role+'.*' ]" ></sr-counter>
             </div>
             {{ team }}
+            <sr-counter :track="[ team+'.*' ]" ></sr-counter>
           </div>
         </div>
       </div>
