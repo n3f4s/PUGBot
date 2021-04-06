@@ -95,7 +95,29 @@ class MyClient(discord.Client):
                          ", ".join([e.to_string() for e in tags]))
         await self.ref.put(PlayerJoined(player.id, tags))
 
-    players: Dict[int, PUGPlayerStatus] = {}
+    async def _on_leaving_lobby(self, mem: discord.Member):
+        """Called when disconnecting from any VC (team or lobby)"""
+        self.players[mem.id].lobby = None
+
+    async def _on_joining_lobby(self, mem: discord.Member,
+                                before: discord.VoiceState,
+                                after: discord.VoiceState):
+        """Called when connecting to a lobby VC (when not connected before)"""
+        # FIXME: check if all the cases have been handled
+        await self._handle_joining_lobby(mem, before, after)
+
+    async def _on_changing_lobby(self):
+        """Called when changing from a lobby to another"""
+        pass
+
+    async def _on_going_team_vc(self):
+        """Called when going from a lobby to a team VC"""
+        pass
+
+    async def _on_back_lobby(self):
+        """Called when going from a team VC
+        to the corresponding lobby"""
+        pass
 
     async def on_ready(self):
         """Execute when client is ready"""
