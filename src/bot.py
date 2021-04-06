@@ -216,14 +216,34 @@ class MyClient(discord.Client):
                                   mem.display_name)
                 self._send_registration_dm(mem, after)
 
-    def _handle_leaving_lobby(self, mem: discord.Member,
-                              before: discord.VoiceState,
-                              after: discord.VoiceState):
-        """
-        Handle player leaving a lobby: set the lobby to None
-        """
-        self.players[mem.id].lobby = None
 
+    def _is_lobby(self, channel: discord.VoiceChannel) -> bool:
+        return (channel.id in [vc.lobby for vc
+                                in CONFIG[channel.guild.id].lobbies])
+
+    def _is_pugs(self, channel: discord.VoiceChannel) -> bool:
+        return (channel.id in self.all_vc[channel.guild.id])
+
+    def _is_joining_lobby(self, guild_id: str,
+                          before: discord.VoiceState,
+                          after: discord.VoiceState) -> bool:
+        """Return true if the member is connecting for the first time in a VC
+        or change VC from a VC unrelated to pugs"""
+        gid = int(guild_id)
+        vcs = self.all_vc[gid]
+        is_lobby = self._is_lobby(after.channel)
+        return (True if not before.channel and is_lobby
+                else (before.channel.id not in vcs
+                      and is_lobby))
+
+    def _is_lobby_team_vc(self,
+                          team: discord.VoiceChannel,
+                          lobby: discord.Voicechannel) -> bool:
+        """Return true if team is one of the team VC corresponding to the lobby lobby"""
+        return (team.id in self.invert_lobby_lookup[team.guild.id]
+                and self.invert_lobby_lookup[team.guild.id][team.id] == lobby.id)
+
+    # TODO: continue refactoring with a linear set of conditions
     # FIXME:
     # 1. If someone join, mark them as "logged in"
     # 2. If someone join the wrong lobby first then join the right lobby, still ask the btag
