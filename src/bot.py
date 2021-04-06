@@ -13,7 +13,7 @@ import discord
 from guildconf import GuildConfig, LobbyVC
 from btag import Btag
 
-from messages import *
+from messages import PlayerJoined, PlayerLeft
 
 # TODO:
 # 3.3- test
@@ -70,8 +70,8 @@ class MyClient(discord.Client):
 
     players: Dict[int, PUGPlayerStatus] = {}
     all_vc: Dict[int, List[int]] = {
-        guild: [l for lobby in cfg.lobbies
-                for l in [lobby.lobby, lobby.team1, lobby.team2]]
+        guild: [lobby for lobby in cfg.lobbies
+                for lobby in [lobby.lobby, lobby.team1, lobby.team2]]
         for (guild, cfg) in CONFIG.items()
     }
     invert_lobby_lookup = _invert_lobby_lookup(CONFIG)
@@ -122,7 +122,8 @@ class MyClient(discord.Client):
     async def on_dm(self, message):
         """
         When receiving a DM:
-        - If the player isn't in `players` then do nothing (the player isn't in any discord lobby)
+        - If the player isn't in `players` then do nothing (the player isn't in
+        any discord lobby)
         - Else:
            - Add the btag
            - If the player isn't registered the notify the backend
@@ -147,8 +148,8 @@ class MyClient(discord.Client):
                                   message.author.display_name)
                 player.is_registered = True
                 await self._on_registration(player.member,
-                                         player.btags,
-                                         player.lobby)
+                                            player.btags,
+                                            player.lobby)
             await message.channel.send("{} is registered with {}"
                                        .format(message.author.display_name,
                                                ", ".join([e.to_string() for e in self.players[message.author.id].btags])))
@@ -192,7 +193,9 @@ class MyClient(discord.Client):
                          mem.display_name,
                          before.channel.name if before.channel else "No VC",
                          after.channel.name)
-        if before_id and self._come_from_team_vc(guild_id, before_id.id, after_id):
+        if before_id and self._come_from_team_vc(guild_id,
+                                                 before_id.id,
+                                                 after_id):
             self.logger.debug("%s come from a team lobby", mem.display_name)
         elif mem.id not in self.players:
             self.logger.debug("Sending registration DM to %s",
@@ -234,12 +237,11 @@ class MyClient(discord.Client):
 
     def _is_lobby_team_vc(self,
                           team: discord.VoiceChannel,
-                          lobby: discord.Voicechannel) -> bool:
+                          lobby: discord.VoiceChannel) -> bool:
         """Return true if team is one of the team VC corresponding to the lobby lobby"""
         return (team.id in self.invert_lobby_lookup[team.guild.id]
                 and self.invert_lobby_lookup[team.guild.id][team.id] == lobby.id)
 
-    # TODO: continue refactoring with a linear set of conditions
     # FIXME:
     # 1. If someone join, mark them as "logged in"
     # 2. If someone join the wrong lobby first then join the right lobby, still ask the btag
@@ -252,9 +254,6 @@ class MyClient(discord.Client):
         Callback for when someone change their VC state
         if someone join a lobby voice channel then call _handle_joining_lobby
         """
-        def is_lobby(channel: discord.VoiceChannel) -> bool:
-            return (channel.id in [vc.lobby for vc
-                                   in CONFIG[channel.guild.id].lobbies])
         if (not after.channel
             and (not before.channel
                  or not self._is_pugs(before.channel))):
