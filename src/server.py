@@ -298,6 +298,8 @@ async def read_queue(queue: asyncio.Queue):
         message = await queue.get()
         if isinstance(message, messages.PlayerJoined):
             lobby.playerJoin(message.player, message.btags[0].to_string())
+        if isinstance(message, messages.PlayerLeft):
+            lobby.playerLeave(message.player)
 
 
 async def run(port):
