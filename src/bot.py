@@ -13,6 +13,8 @@ import discord
 from guildconf import GuildConfig, LobbyVC
 from btag import Btag
 
+from messages import *
+
 # TODO:
 # 3.3- test
 # 3.4- handle player leaving
@@ -40,13 +42,6 @@ class PUGPlayerStatus:
         self.lobby = lobby
         self.btags = btags
         self.is_registered = False
-
-
-class PlayerJoined:
-    """Data struct used for message passing"""
-    def __init__(self, player: str, btags: List[Btag]):
-        self.player = player
-        self.btags = btags
 
 
 def _invert_lobby_lookup(config: Dict[int, GuildConfig]) -> Dict[int, Dict[int, int]]:
@@ -98,6 +93,7 @@ class MyClient(discord.Client):
     async def _on_leaving_lobby(self, mem: discord.Member):
         """Called when disconnecting from any VC (team or lobby)"""
         self.players[mem.id].lobby = None
+        await self.ref.put(PlayerLeft(mem.id))
 
     async def _on_joining_lobby(self, mem: discord.Member,
                                 before: discord.VoiceState,
@@ -297,7 +293,7 @@ class MyClient(discord.Client):
         if (after.channel and before.channel
             and self._is_lobby_team_vc(after.channel, before.channel)):
             # Joining the team VC related to the lobby we were in
-            self._going_team_vc()
+            self._on_going_team_vc()
             return
 
         if (after.channel and before.channel
