@@ -110,9 +110,11 @@
     }
     
     .player-card .role-selector {
+      position: relative;
       float: right;
       margin: 5px;
       font-size: small;
+      z-index: 10;
     }
     
     .player-card .role-selector img {
@@ -520,8 +522,9 @@
             
             const updateData = evt.updateData;
             
-            //console.log(player);
-            //console.log(updateData);
+            console.log(player);
+            console.log(updateData);
+            
             Object.assign(player, updateData);
           },
           
@@ -696,6 +699,7 @@
               </span>
             
               <div class="role-selector valign-wrapper">
+                <i class="material-icons tiny" @click="refreshPlayer(player)">refresh</i>
                 {{ SR.toFixed(0) }}
                 <img
                   v-for="role in allRoles"
@@ -747,6 +751,10 @@
           evt.stopPropagation();
         },
         
+        refreshPlayer(player) {
+          bus.send('refresh-player', { playerID: player.id } );
+        },
+        
         toggleRole(player, role) {
           var roles = [...player.selectedRoles];
           const index = roles.indexOf(role);
@@ -761,7 +769,6 @@
           
           var updateData = { selectedRoles: roles };
           bus.send('update-player', { playerID: player.id, updateData: updateData });
-          
         },
         
         updateSR(player, role, value) {
@@ -863,7 +870,7 @@
           <div v-if="!el.is.tiny" class="vertical-line"></div>
           
           <div v-if="!el.is.tiny" class="most-played">
-            <img v-for="hero in roleData.mostPlayed"
+            <img v-for="hero in roleData.mostPlayed.slice(0, 3)"
               :src="'/assets/icons/heroes/' + hero.hero + '.png'"
             />
           </div>

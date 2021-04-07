@@ -28,8 +28,8 @@ class CareerProfile:
             "overview": { }
         }
         
-        if d is None:
-            return profile
+        if not d:
+            d = {}
         
         mostPlayed = { "tank": [], "damage": [], "support": [] }
         for hero, hdata in d.get("competitiveStats", {}).get("topHeroes", {}).items():
@@ -41,7 +41,7 @@ class CareerProfile:
             profile["overview"][r] = {
                 "sr": None, 
                 "peakSr": None,
-                "mostPlayed": sorted(mostPlayed[r], key=lambda x: x["timePlayed"])
+                "mostPlayed": sorted(mostPlayed.get(r,[]), key=lambda x: x["timePlayed"])
             }
             
         ratings = d.get('ratings')
@@ -74,8 +74,8 @@ class CareerDatabase:
     def __init__(self):
         pass
         
-    def getStats(self, btag):
-        if self._tagInDatabase(btag):
+    def getStats(self, btag, force_update=False):
+        if self._tagInDatabase(btag) and not force_update:
             stats = self._getFromDataBase(btag)
         else:
             stats = self._queryApi(btag)

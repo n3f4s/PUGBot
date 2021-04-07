@@ -57,6 +57,7 @@ class GameLobby:
                 "id": "discord.2",
                 "title": "LioKioNio",
                 "group": "waiting",
+                "selectedRoles": ["tank"],
                 "profileData": getOverwatchProfile("LioKioNio#2969"),
             },
             {
@@ -67,6 +68,7 @@ class GameLobby:
                 "profileData": getOverwatchProfile("flasheart#21119"),
             },
         ]
+        
 
     def processMessage(self, msg):
         msg_type = msg["event"]
@@ -86,6 +88,19 @@ class GameLobby:
         elif msg_type == "update-player":
             self._updatePlayerData(msg_data["playerID"], msg_data["updateData"])
             self._broadcast(msg)
+            return True
+            
+        elif msg_type == "refresh-player":
+            # Do it manually for now
+            
+            player = self._findPlayer(msg_data["playerID"])
+            update = { "profileData": getOverwatchProfile(player["profileData"]["tag"], force_update=True ) }
+            print(update)
+            self._updatePlayerData(msg_data["playerID"], update)
+            self._broadcast({
+                    "event": "update-player",
+                    "data": { "playerID": player["id"], "updateData": update },
+                })
             return True
 
         return False
@@ -213,8 +228,8 @@ def _getOverwatchProfile(bnetId):
     return profile
 
 careerDatabase = CareerDatabase()
-def getOverwatchProfile(btag):
-    return careerDatabase.getStats(Btag(btag)).__getFormattedHack__()
+def getOverwatchProfile(btag, force_update=False):
+    return careerDatabase.getStats(Btag(btag), force_update).__getFormattedHack__()
 
 
 
