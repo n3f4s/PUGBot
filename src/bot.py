@@ -87,7 +87,7 @@ class MyClient(discord.Client):
 
         self.logger.info("%s joined lobby %s with btags %s",
                          player.display_name,
-                         lobby.channel.name,
+                         lobby.name,
                          ", ".join([e.to_string() for e in tags]))
         await self.ref.put(PlayerJoined(player.id, tags))
 
