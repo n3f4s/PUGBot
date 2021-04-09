@@ -84,7 +84,7 @@ class MyClient(discord.Client):
         if the player is already registered in the DB
         or when they give their btag to the bot
         """
-        self.logger.info("%s joined lobby %s with batgs %s",
+        self.logger.info("%s joined lobby %s with btags %s",
                          player.display_name,
                          lobby.channel.name,
                          ", ".join([e.to_string() for e in tags]))
@@ -161,11 +161,18 @@ class MyClient(discord.Client):
             self.logger.debug('Saving btag %s for %s',
                               message.content,
                               message.author.display_name)
+                              
             try:
-                player.btags.append(Btag(message.content))
+                btag = Btag(message.content)
             except:
                 await message.channel.send("Battle tag not understood, please resend it")
                 return
+            
+            if btag not in player.btags:
+                player.btags.append(btag)
+            else:
+                await message.channel.send("You are already registered with that tag!")
+            
             if not player.is_registered:
                 self.logger.debug('Notifying backend of new player %s joining VC for the first time',
                                   message.author.display_name)

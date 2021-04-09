@@ -137,6 +137,8 @@ class GameLobby:
             return False
 
     def playerLeave(self, playerId):
+        playerId = str(playerId) # kinda a hack to ensure all types are the same
+        
         if self._removePlayer(playerId):
             self._broadcast({
                     "event": "player-leave",
