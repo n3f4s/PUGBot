@@ -62,7 +62,7 @@ class MyClient(discord.Client):
         super().__init__()
         self.logger = logging.getLogger("Bot")
         self.logger.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('[%(asctime)s] [%(name)s] [%(levelname)s]:  %(message)s')
+        formatter = logging.Formatter('[%(asctime)s] [%(name)s] [%(levelname)s]: %(message)s')
         handler = logging.StreamHandler(sys.stdout)
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
@@ -86,13 +86,15 @@ class MyClient(discord.Client):
         """
         self.logger.info("%s joined lobby %s with batgs %s",
                          player.display_name,
-                         lobby.name,
+                         lobby.channel.name,
                          ", ".join([e.to_string() for e in tags]))
         await self.ref.put(PlayerJoined(player.id, tags))
 
     async def _on_leaving_lobby(self, mem: discord.Member):
         """Called when disconnecting from any VC (team or lobby)"""
+        self.logger.info("%s left a PUG lobby", mem.display_name)
         self.players[mem.id].lobby = None
+        self.logger.debug("Notifying backend of %s departure", mem.display_name)
         await self.ref.put(PlayerLeft(mem.id))
 
     async def _on_joining_lobby(self, mem: discord.Member,
@@ -100,19 +102,40 @@ class MyClient(discord.Client):
                                 after: discord.VoiceState):
         """Called when connecting to a lobby VC (when not connected before)"""
         # FIXME: check if all the cases have been handled
+        self.logger.info("%s joined the PUG lobby %s",
+                         mem.display_name,
+                         after.channel.name)
         await self._handle_joining_lobby(mem, before, after)
 
-    async def _on_changing_lobby(self):
+    async def _on_changing_lobby(self, mem: discord.Member,
+                                 before: discord.VoiceState,
+                                 after: discord.VoiceState):
+        self.logger.info("%s moved from %s to %s",
+                         mem.display_name,
+                         before.channel.name,
+                         after.channel.name)
         """Called when changing from a lobby to another"""
         pass
 
-    async def _on_going_team_vc(self):
+    async def _on_going_team_vc(self, mem: discord.Member,
+                                before: discord.VoiceState,
+                                after: discord.VoiceState):
         """Called when going from a lobby to a team VC"""
+        self.logger.info("%s went from lobby %s to team VC %s",
+                         mem.display_name,
+                         before.channel.name,
+                         after.channel.name)
         pass
 
-    async def _on_back_lobby(self):
+    async def _on_back_lobby(self, mem: discord.Member,
+                             before: discord.VoiceState,
+                             after: discord.VoiceState):
         """Called when going from a team VC
         to the corresponding lobby"""
+        self.logger.info("%s went from team VC %s to lobby %s",
+                         mem.display_name,
+                         before.channel.name,
+                         after.channel.name)
         pass
 
     async def on_ready(self):
