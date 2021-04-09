@@ -5,6 +5,7 @@ SRCDIR 				:= src
 TARGETDIR 		:= target
 
 PYTHON 				:= python
+MYPY					:= mypy
 
 SOURCES       := $(wildcard $(SRCDIR)/*.py )
 OBJECTS       := $(patsubst $(SRCDIR)/%,$(TARGETDIR)/%,$(SOURCES:.py=.py))
@@ -12,9 +13,13 @@ OBJECTS       := $(patsubst $(SRCDIR)/%,$(TARGETDIR)/%,$(SOURCES:.py=.py))
 
 ALL: $(TARGET).pyz
 
-$(TARGET).pyz: TEMPLATES ASSETS RANKS $(OBJECTS)
+$(TARGET).pyz: TEMPLATES ASSETS RANKS $(OBJECTS) CHECK
 	@echo "Generating file" $(TARGET).pyz
 	@$(PYTHON) -m zipapp $(TARGETDIR) -p '/usr/bin/env python3' -o $(TARGET).pyz
+
+CHECK: RANKS
+	@echo "Static analysis"
+	@$(MYPY) $(SRCDIR)/*.py
 
 run: $(TARGET).pyz
 	@echo "Running" $(TARGET).pyz
@@ -44,4 +49,4 @@ clean:
 	rm $(TARGET).pyz
 	rm -rf $(TARGETDIR)
 
-.PHONY: RANKS INSTALL TEMPLATES clean
+.PHONY: RANKS INSTALL TEMPLATES clean CHECK
