@@ -4,3 +4,4 @@ requests==2.25.1
 requests-futures==1.0.0
 requests-oauthlib==1.3.0
 quart
+discord.py-stubs
