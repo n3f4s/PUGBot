@@ -70,8 +70,8 @@ class MyClient(discord.Client):
 
     players: Dict[int, PUGPlayerStatus] = {}
     all_vc: Dict[int, List[int]] = {
-        guild: [lobby for lobby in cfg.lobbies
-                for lobby in [lobby.lobby, lobby.team1, lobby.team2]]
+        guild: [lobby for lobbyVC in cfg.lobbies
+                for lobby in [lobbyVC.lobby, lobbyVC.team1, lobbyVC.team2]]
         for (guild, cfg) in CONFIG.items()
     }
     invert_lobby_lookup = _invert_lobby_lookup(CONFIG)
@@ -298,24 +298,24 @@ class MyClient(discord.Client):
                                        before,
                                        after)):
             # Joining a lobby for the first time
-            self._on_joining_lobby(mem, before, after)
+            await self._on_joining_lobby(mem, before, after)
 
         if (not (after.channel and self._is_pugs(after.channel))
             and (before.channel and self._is_pugs(before.channel))):
             # Leaving a pug voice channel
-            self._on_leaving_lobby(mem)
+            await self._on_leaving_lobby(mem)
             return
 
         if (after.channel and before.channel
             and self._is_lobby_team_vc(before.channel, after.channel)):
             # Rejoining lobby from team channel
-            self._on_back_lobby()
+            await self._on_back_lobby(mem, before, after)
             return
 
         if (after.channel and before.channel
             and self._is_lobby_team_vc(after.channel, before.channel)):
             # Joining the team VC related to the lobby we were in
-            self._on_going_team_vc()
+            await self._on_going_team_vc(mem, before, after)
             return
 
         if (after.channel and before.channel
@@ -324,5 +324,5 @@ class MyClient(discord.Client):
             and not self._is_lobby_team_vc(before.channel, after.channel)
             and not self._is_lobby_team_vc(after.channel, before.channel)):
             # Changing lobby
-            self._on_changing_lobby()
+            await self._on_changing_lobby(mem, before, after)
             return
