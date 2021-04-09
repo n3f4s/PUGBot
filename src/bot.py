@@ -84,6 +84,7 @@ class MyClient(discord.Client):
         if the player is already registered in the DB
         or when they give their btag to the bot
         """
+
         self.logger.info("%s joined lobby %s with btags %s",
                          player.display_name,
                          lobby.channel.name,
