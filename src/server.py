@@ -40,32 +40,25 @@ class GameLobby:
         self.messageBus = MessageBus()
         self.lobbyPlayers = [
             {   # Feeniks is high rank
-                "id": "discord.0",
+                "id": "dummy.0",
                 "title": "Feeniks",
                 "group": "waiting",
                 "selectedRoles": ["tank", "support"],
                 "profileData": getOverwatchProfile("Feeniks#21541"),
             },
             {   # Joshi has placed on all roles
-                "id": "discord.1",
+                "id": "dummy.1",
                 "title": "SuperJoshi94",
                 "group": "waiting",
                 "selectedRoles": ["damage"],
                 "profileData": getOverwatchProfile("SuperJoshi94#2645"),
             },
             {   # Lio has placed on all roles but no public profile
-                "id": "discord.2",
+                "id": "dummy.2",
                 "title": "LioKioNio",
                 "group": "waiting",
                 "selectedRoles": ["tank"],
                 "profileData": getOverwatchProfile("LioKioNio#2969"),
-            },
-            {
-                "id": "discord.3",
-                "title": "flasheart",
-                "group": "waiting",
-                "selectedRoles": ["tank", "damage", "support"],
-                "profileData": getOverwatchProfile("flasheart#21119"),
             },
         ]
         
@@ -124,7 +117,7 @@ class GameLobby:
             "id": playerId,
             "title": playerId,
             "group": "waiting",
-            "selectd-roles": ["tank", "damage", "support"],
+            "selectedRoles": ["tank", "damage", "support"],
             "profileData": getOverwatchProfile(bnetId)
         }
         if self._addPlayer(playerData):
@@ -283,7 +276,7 @@ def render_template(name, **kwargs):
 
 @app.route('/')
 async def root():
-    return await render_template('index.html', lobbyPlayers=lobby.lobbyPlayers)
+    return render_template('index.html', lobbyPlayers=lobby.lobbyPlayers)
 
 
 @app.route('/lobbyupdates', methods=['GET'])
