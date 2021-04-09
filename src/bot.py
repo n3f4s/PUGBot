@@ -84,6 +84,7 @@ class MyClient(discord.Client):
         if the player is already registered in the DB
         or when they give their btag to the bot
         """
+
         self.logger.info("%s joined lobby %s with btags %s",
                          player.display_name,
                          lobby.channel.name,
@@ -172,6 +173,7 @@ class MyClient(discord.Client):
                 player.btags.append(btag)
             else:
                 await message.channel.send("You are already registered with that tag!")
+                return
             
             if not player.is_registered:
                 self.logger.debug('Notifying backend of new player %s joining VC for the first time',
@@ -197,11 +199,11 @@ class MyClient(discord.Client):
         return False
 
     async def _send_registration_dm(self, mem: discord.Member,
-                                    after: discord.VoiceChannel):
-        self.players[mem.id] = PUGPlayerStatus(mem, after, [])
+                                    channel: discord.VoiceChannel):
+        self.players[mem.id] = PUGPlayerStatus(mem, channel, [])
         self.logger.info('Registering %s for lobby %s',
                          mem.name,
-                         after.channel.name)
+                         channel.name)
         dm_chan = await mem.create_dm()
         await dm_chan.send("Give me your battle tag:")
 
@@ -230,7 +232,7 @@ class MyClient(discord.Client):
         elif mem.id not in self.players:
             self.logger.debug("Sending registration DM to %s",
                               mem.display_name)
-            await self._send_registration_dm(mem, after)
+            await self._send_registration_dm(mem, after.channel)
         else:
             if self.players[mem.id].is_registered:
                 self.logger.info("Moving %s to %s",
