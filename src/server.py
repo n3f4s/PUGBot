@@ -44,21 +44,21 @@ class GameLobby:
                 "title": "Feeniks",
                 "group": "waiting",
                 "selectedRoles": ["tank", "support"],
-                "profileData": getOverwatchProfile("Feeniks#21541"),
+                "profileData": _getOverwatchProfile("Feeniks#21541"),
             },
             {   # Joshi has placed on all roles
                 "id": "dummy.1",
                 "title": "SuperJoshi94",
                 "group": "waiting",
                 "selectedRoles": ["damage"],
-                "profileData": getOverwatchProfile("SuperJoshi94#2645"),
+                "profileData": _getOverwatchProfile("SuperJoshi94#2645"),
             },
             {   # Lio has placed on all roles but no public profile
                 "id": "dummy.2",
                 "title": "LioKioNio",
                 "group": "waiting",
                 "selectedRoles": ["tank"],
-                "profileData": getOverwatchProfile("LioKioNio#2969"),
+                "profileData": _getOverwatchProfile("LioKioNio#2969"),
             },
         ]
         
@@ -88,7 +88,7 @@ class GameLobby:
             
             player = self._findPlayer(msg_data["playerID"])
             update = { "profileData": getOverwatchProfile(player["profileData"]["tag"], force_update=True ) }
-            print(update)
+
             self._updatePlayerData(msg_data["playerID"], update)
             self._broadcast({
                     "event": "update-player",
@@ -118,7 +118,7 @@ class GameLobby:
             "title": playerId,
             "group": "waiting",
             "selectedRoles": ["tank", "damage", "support"],
-            "profileData": getOverwatchProfile(bnetId)
+            "profileData": getOverwatchProfile(bnetId),
         }
         if self._addPlayer(playerData):
             self._broadcast({
@@ -224,7 +224,8 @@ def _getOverwatchProfile(bnetId):
 
 careerDatabase = CareerDatabase()
 def getOverwatchProfile(btag, force_update=False):
-    return careerDatabase.getStats(Btag(btag), force_update).__getFormattedHack__()
+    stats = careerDatabase.getStats(Btag(btag), force_update)
+    return stats.__getFormattedHack__()
 
 
 
