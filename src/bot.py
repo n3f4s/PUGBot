@@ -262,7 +262,7 @@ class MyClient(discord.Client):
                           after: discord.VoiceState) -> bool:
         """Return true if the member is connecting for the first time in a VC
         or change VC from a VC unrelated to pugs"""
-        assert(isinstance(before.channel, discord.VoiceChannel))
+        assert(isinstance(before.channel, (type(None), discord.VoiceChannel)))
         assert(isinstance(after.channel, discord.VoiceChannel))
         gid = int(guild_id)
         vcs = self.all_vc[gid]
