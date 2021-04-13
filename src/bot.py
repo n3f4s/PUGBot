@@ -292,12 +292,12 @@ class MyClient(discord.Client):
         """
 
         # Type checking and making mypy happy
-        if isinstance(before.channel, (discord.GroupChannel, discord.StageChannel)):
+        if not isinstance(before.channel, (type(None), discord.VoiceChannel)):
             return
-        if isinstance(after.channel, (discord.GroupChannel, discord.StageChannel)):
+        if not isinstance(after.channel, (type(None), discord.VoiceChannel)):
             return
-        assert(not isinstance(after.channel, (discord.GroupChannel, discord.StageChannel)))
-        assert(not isinstance(before.channel, (discord.GroupChannel, discord.StageChannel )))
+        assert(isinstance(after.channel, (type(None), discord.VoiceChannel)))
+        assert(isinstance(before.channel, (type(None), discord.VoiceChannel)))
 
 
         if (not after.channel
