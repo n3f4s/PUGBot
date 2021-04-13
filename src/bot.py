@@ -103,7 +103,7 @@ class MyClient(discord.Client):
                                 after: discord.VoiceState):
         """Called when connecting to a lobby VC (when not connected before)"""
         # FIXME: check if all the cases have been handled
-        assert(after.channel)
+        assert after.channel
         self.logger.info("%s joined the PUG lobby %s",
                          mem.display_name,
                          after.channel.name)
@@ -112,8 +112,8 @@ class MyClient(discord.Client):
     async def _on_changing_lobby(self, mem: discord.Member,
                                  before: discord.VoiceState,
                                  after: discord.VoiceState):
-        assert(before.channel)
-        assert(after.channel)
+        assert before.channel
+        assert after.channel
         self.logger.info("%s moved from %s to %s",
                          mem.display_name,
                          before.channel.name,
@@ -125,8 +125,8 @@ class MyClient(discord.Client):
                                 before: discord.VoiceState,
                                 after: discord.VoiceState):
         """Called when going from a lobby to a team VC"""
-        assert(before.channel)
-        assert(after.channel)
+        assert before.channel
+        assert after.channel
         self.logger.info("%s went from lobby %s to team VC %s",
                          mem.display_name,
                          before.channel.name,
@@ -138,8 +138,8 @@ class MyClient(discord.Client):
                              after: discord.VoiceState):
         """Called when going from a team VC
         to the corresponding lobby"""
-        assert(before.channel)
-        assert(after.channel)
+        assert before.channel
+        assert after.channel
         self.logger.info("%s went from team VC %s to lobby %s",
                          mem.display_name,
                          before.channel.name,
@@ -217,9 +217,9 @@ class MyClient(discord.Client):
         - If has status and is_registered, change lobby and notify
         - If has status and not is_registered, re-send DM
         """
-        assert(after.channel)
-        assert(isinstance(before.channel, discord.VoiceChannel))
-        assert(isinstance(after.channel, discord.VoiceChannel))
+        assert after.channel
+        assert isinstance(before.channel, discord.VoiceChannel)
+        assert isinstance(after.channel, discord.VoiceChannel)
         before_id = before.channel
         after_id = after.channel.id
         guild_id = after.channel.guild.id
@@ -262,14 +262,16 @@ class MyClient(discord.Client):
                           after: discord.VoiceState) -> bool:
         """Return true if the member is connecting for the first time in a VC
         or change VC from a VC unrelated to pugs"""
-        assert(isinstance(before.channel, (type(None), discord.VoiceChannel)))
-        assert(isinstance(after.channel, discord.VoiceChannel))
+        assert isinstance(before.channel, (type(None), discord.VoiceChannel))
+        assert isinstance(after.channel, discord.VoiceChannel)
         gid = int(guild_id)
         vcs = self.all_vc[gid]
         is_lobby = self._is_lobby(after.channel)
-        return (True if not before.channel and is_lobby
-                else (before.channel.id not in vcs
-                      and is_lobby))
+        if not before.channel and is_lobby:
+            return True
+        else:
+            assert before.channel
+            return before.channel.id not in vcs and is_lobby
 
     def _is_lobby_team_vc(self,
                           team: discord.VoiceChannel,
@@ -296,8 +298,8 @@ class MyClient(discord.Client):
             return
         if not isinstance(after.channel, (type(None), discord.VoiceChannel)):
             return
-        assert(isinstance(after.channel, (type(None), discord.VoiceChannel)))
-        assert(isinstance(before.channel, (type(None), discord.VoiceChannel)))
+        assert isinstance(after.channel, (type(None), discord.VoiceChannel))
+        assert isinstance(before.channel, (type(None), discord.VoiceChannel))
 
 
         if (not after.channel
