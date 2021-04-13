@@ -219,7 +219,7 @@ class MyClient(discord.Client):
         - If has status and not is_registered, re-send DM
         """
         assert after.channel
-        assert isinstance(before.channel, discord.VoiceChannel)
+        assert isinstance(before.channel, (type(None), discord.VoiceChannel))
         assert isinstance(after.channel, discord.VoiceChannel)
         before_id = before.channel
         after_id = after.channel.id
