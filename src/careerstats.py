@@ -73,7 +73,7 @@ class CareerDatabase:
        'Connection': 'keep-alive' }
     
     def __init__(self):
-        pass
+        self._databaseroot = os.environ.get('DATABASE_ROOT', self._databaseroot)
         
     def getStats(self, btag, force_update=False):
         if self._tagInDatabase(btag) and not force_update:
