@@ -16,6 +16,7 @@ from btag import Btag
 from messages import PlayerJoined, PlayerLeft
 
 # TODO:
+# 1- check that nothing is broken
 # 3.3- test
 # 3.4- handle player leaving
 # 3.5- fault resistance

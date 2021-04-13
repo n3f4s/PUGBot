@@ -116,7 +116,6 @@ class CareerDatabase:
     def _saveToDataBase(self, btag, data):
         playerdir = os.path.join(self._databaseroot, btag.to_string())
         full_path = os.path.abspath(playerdir)
-        print("Saving DB to %S", full_path)
         if not os.path.exists(playerdir):
             os.makedirs(playerdir)
             
