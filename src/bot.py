@@ -93,10 +93,11 @@ class MyClient(discord.Client):
 
     async def _on_leaving_lobby(self, mem: discord.Member):
         """Called when disconnecting from any VC (team or lobby)"""
-        self.logger.info("%s left a PUG lobby", mem.display_name)
-        self.players[mem.id].lobby = None
-        self.logger.debug("Notifying backend of %s departure", mem.display_name)
-        await self.ref.put(PlayerLeft("{}".format(mem.id)))
+        if mem.id in self.players:
+            self.logger.info("%s left a PUG lobby", mem.display_name)
+            self.players[mem.id].lobby = None
+            self.logger.debug("Notifying backend of %s departure", mem.display_name)
+            await self.ref.put(PlayerLeft("{}".format(mem.id)))
 
     async def _on_joining_lobby(self, mem: discord.Member,
                                 before: discord.VoiceState,
