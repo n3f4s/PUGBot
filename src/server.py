@@ -44,24 +44,23 @@ class GameLobby:
                 "title": "Feeniks",
                 "group": "waiting",
                 "selectedRoles": ["tank", "support"],
-                "profileData": _getOverwatchProfile("Feeniks#21541"),
+                "profileData": getOverwatchProfile("Feeniks#21541"),
             },
             {   # Joshi has placed on all roles
                 "id": "dummy.1",
                 "title": "SuperJoshi94",
                 "group": "waiting",
                 "selectedRoles": ["damage"],
-                "profileData": _getOverwatchProfile("SuperJoshi94#2645"),
+                "profileData": getOverwatchProfile("SuperJoshi94#2645"),
             },
             {   # Lio has placed on all roles but no public profile
                 "id": "dummy.2",
                 "title": "LioKioNio",
                 "group": "waiting",
                 "selectedRoles": ["tank"],
-                "profileData": _getOverwatchProfile("LioKioNio#2969"),
+                "profileData": getOverwatchProfile("LioKioNio#2969"),
             },
         ]
-        
 
     def processMessage(self, msg):
         msg_type = msg["event"]
@@ -206,17 +205,17 @@ def _getOverwatchProfile(bnetId):
             "tank": {
                 "sr": 2586,
                 "peakSr": 2856,
-                "mostPlayed": ["dva", "zarya", "winston"]
+                "mostPlayed": [ {"hero": "dva"}, {"hero": "zarya"}, {"hero": "winston"}]
             },
             "damage": {
                 "sr": 2330,
                 "peakSr": 2495,
-                "mostPlayed": ["mccree", "ashe", "pharah"]
+                "mostPlayed": [{"hero": "mccree"}, {"hero": "ashe"}, {"hero": "pharah"}]
             },
             "support": {
-               "sr": None,
+                "sr": None,
                 "peakSr": 3216,
-                "mostPlayed": ["lucio"]
+                "mostPlayed": [{"hero": "lucio"}]
             },
         },
     }
