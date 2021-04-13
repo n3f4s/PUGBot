@@ -5,7 +5,7 @@ and what will be imported to run it
 
 import sys
 import logging
-from typing import Dict, List
+from typing import Dict, List, Union
 import asyncio
 
 import discord
@@ -16,6 +16,7 @@ from btag import Btag
 from messages import PlayerJoined, PlayerLeft
 
 # TODO:
+# 1- check that nothing is broken
 # 3.3- test
 # 3.4- handle player leaving
 # 3.5- fault resistance
@@ -39,7 +40,7 @@ class PUGPlayerStatus:
                  lobby: discord.VoiceChannel,
                  btags: List[Btag]):
         self.member = member
-        self.lobby = lobby
+        self.lobby: Union[discord.VoiceChannel, None] = lobby
         self.btags = btags
         self.is_registered = False
 
@@ -84,25 +85,25 @@ class MyClient(discord.Client):
         if the player is already registered in the DB
         or when they give their btag to the bot
         """
-
         self.logger.info("%s joined lobby %s with btags %s",
                          player.display_name,
-                         lobby.channel.name,
+                         lobby.name,
                          ", ".join([e.to_string() for e in tags]))
-        await self.ref.put(PlayerJoined(player.id, tags))
+        await self.ref.put(PlayerJoined("{}".format(player.id), tags))
 
     async def _on_leaving_lobby(self, mem: discord.Member):
         """Called when disconnecting from any VC (team or lobby)"""
         self.logger.info("%s left a PUG lobby", mem.display_name)
         self.players[mem.id].lobby = None
         self.logger.debug("Notifying backend of %s departure", mem.display_name)
-        await self.ref.put(PlayerLeft(mem.id))
+        await self.ref.put(PlayerLeft("{}".format(mem.id)))
 
     async def _on_joining_lobby(self, mem: discord.Member,
                                 before: discord.VoiceState,
                                 after: discord.VoiceState):
         """Called when connecting to a lobby VC (when not connected before)"""
         # FIXME: check if all the cases have been handled
+        assert(after.channel)
         self.logger.info("%s joined the PUG lobby %s",
                          mem.display_name,
                          after.channel.name)
@@ -111,6 +112,8 @@ class MyClient(discord.Client):
     async def _on_changing_lobby(self, mem: discord.Member,
                                  before: discord.VoiceState,
                                  after: discord.VoiceState):
+        assert(before.channel)
+        assert(after.channel)
         self.logger.info("%s moved from %s to %s",
                          mem.display_name,
                          before.channel.name,
@@ -122,6 +125,8 @@ class MyClient(discord.Client):
                                 before: discord.VoiceState,
                                 after: discord.VoiceState):
         """Called when going from a lobby to a team VC"""
+        assert(before.channel)
+        assert(after.channel)
         self.logger.info("%s went from lobby %s to team VC %s",
                          mem.display_name,
                          before.channel.name,
@@ -133,6 +138,8 @@ class MyClient(discord.Client):
                              after: discord.VoiceState):
         """Called when going from a team VC
         to the corresponding lobby"""
+        assert(before.channel)
+        assert(after.channel)
         self.logger.info("%s went from team VC %s to lobby %s",
                          mem.display_name,
                          before.channel.name,
@@ -162,19 +169,11 @@ class MyClient(discord.Client):
             self.logger.debug('Saving btag %s for %s',
                               message.content,
                               message.author.display_name)
-                              
             try:
-                btag = Btag(message.content)
+                player.btags.append(Btag(message.content))
             except:
                 await message.channel.send("Battle tag not understood, please resend it")
                 return
-            
-            if btag not in player.btags:
-                player.btags.append(btag)
-            else:
-                await message.channel.send("You are already registered with that tag!")
-                return
-            
             if not player.is_registered:
                 self.logger.debug('Notifying backend of new player %s joining VC for the first time',
                                   message.author.display_name)
@@ -199,11 +198,11 @@ class MyClient(discord.Client):
         return False
 
     async def _send_registration_dm(self, mem: discord.Member,
-                                    channel: discord.VoiceChannel):
-        self.players[mem.id] = PUGPlayerStatus(mem, channel, [])
+                                    after: discord.VoiceChannel):
+        self.players[mem.id] = PUGPlayerStatus(mem, after, [])
         self.logger.info('Registering %s for lobby %s',
                          mem.name,
-                         channel.name)
+                         after.name)
         dm_chan = await mem.create_dm()
         await dm_chan.send("Give me your battle tag:")
 
@@ -218,6 +217,9 @@ class MyClient(discord.Client):
         - If has status and is_registered, change lobby and notify
         - If has status and not is_registered, re-send DM
         """
+        assert(after.channel)
+        assert(isinstance(before.channel, discord.VoiceChannel))
+        assert(isinstance(after.channel, discord.VoiceChannel))
         before_id = before.channel
         after_id = after.channel.id
         guild_id = after.channel.guild.id
@@ -245,7 +247,7 @@ class MyClient(discord.Client):
             else:
                 self.logger.debug("Sending registration DM to %s",
                                   mem.display_name)
-                self._send_registration_dm(mem, after)
+                self._send_registration_dm(mem, after.channel)
 
 
     def _is_lobby(self, channel: discord.VoiceChannel) -> bool:
@@ -260,6 +262,8 @@ class MyClient(discord.Client):
                           after: discord.VoiceState) -> bool:
         """Return true if the member is connecting for the first time in a VC
         or change VC from a VC unrelated to pugs"""
+        assert(isinstance(before.channel, discord.VoiceChannel))
+        assert(isinstance(after.channel, discord.VoiceChannel))
         gid = int(guild_id)
         vcs = self.all_vc[gid]
         is_lobby = self._is_lobby(after.channel)
@@ -286,6 +290,16 @@ class MyClient(discord.Client):
         Callback for when someone change their VC state
         if someone join a lobby voice channel then call _handle_joining_lobby
         """
+
+        # Type checking and making mypy happy
+        if isinstance(before.channel, (discord.GroupChannel, discord.StageChannel)):
+            return
+        if isinstance(after.channel, (discord.GroupChannel, discord.StageChannel)):
+            return
+        assert(not isinstance(after.channel, (discord.GroupChannel, discord.StageChannel)))
+        assert(not isinstance(before.channel, (discord.GroupChannel, discord.StageChannel )))
+
+
         if (not after.channel
             and (not before.channel
                  or not self._is_pugs(before.channel))):
@@ -303,7 +317,7 @@ class MyClient(discord.Client):
             return
 
         if (after.channel
-            and self._is_joining_lobby(after.channel.guild.id,
+            and self._is_joining_lobby("{}".format(after.channel.guild.id),
                                        before,
                                        after)):
             # Joining a lobby for the first time

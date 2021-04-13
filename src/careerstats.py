@@ -2,6 +2,7 @@ from btag import Btag
 from datetime import datetime
 import json
 import os
+import os.path
 import urllib.request
 import zipfile
 
@@ -114,6 +115,7 @@ class CareerDatabase:
         
     def _saveToDataBase(self, btag, data):
         playerdir = os.path.join(self._databaseroot, btag.to_string())
+        full_path = os.path.abspath(playerdir)
         if not os.path.exists(playerdir):
             os.makedirs(playerdir)
             
