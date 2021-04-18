@@ -81,7 +81,7 @@ class CareerDatabase:
             stats = await self._getFromDataBase(btag)
         else:
             stats = await self._queryApi(btag)
-            self._saveToDataBase(btag, stats)
+            await self._saveToDataBase(btag, stats)
             
         stats = CareerProfile(btag, stats)
         return stats
