@@ -76,23 +76,23 @@ class CareerDatabase:
     def __init__(self):
         self._databaseroot = os.environ.get('DATABASE_ROOT', self._databaseroot)
         
-    def getStats(self, btag, force_update=False):
+    async def getStats(self, btag, force_update=False):
         if self._tagInDatabase(btag) and not force_update:
-            stats = self._getFromDataBase(btag)
+            stats = await self._getFromDataBase(btag)
         else:
-            stats = self._queryApi(btag)
+            stats = await self._queryApi(btag)
             self._saveToDataBase(btag, stats)
             
         stats = CareerProfile(btag, stats)
         return stats
         
-    def _queryApi(self, btag):
+    async def _queryApi(self, btag):
         if self._dummyquery:
             return { "dummyquery": "dummyval3"}
         else:
             try:
                 query = self._apiquery.format(btag.for_api())
-                request = urllib.request.Request(query,None,self._hdr)
+                request = urllib.request.Request(query, None, self._hdr)
                 response = urllib.request.urlopen(request).read()
             except urllib.error.HTTPError:
                 return None
@@ -106,14 +106,14 @@ class CareerDatabase:
     def _tagInDatabase(self, btag):
         return os.path.exists(os.path.join(self._databaseroot, btag.to_string()))
         
-    def _getFromDataBase(self, btag):
+    async def _getFromDataBase(self, btag):
         playerdir = os.path.join(self._databaseroot, btag.to_string())
         files = sorted(os.listdir(playerdir))
         with open(os.path.join(playerdir, files[-1]), 'r') as file:
             data = json.load(file)
         return data
         
-    def _saveToDataBase(self, btag, data):
+    async def _saveToDataBase(self, btag, data):
         playerdir = os.path.join(self._databaseroot, btag.to_string())
         full_path = os.path.abspath(playerdir)
         if not os.path.exists(playerdir):

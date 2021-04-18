@@ -6,7 +6,13 @@ and what will be imported to run it
 import sys
 import logging
 from typing import Dict, List, Union
+
+import urllib.request
+import json
+
 import asyncio
+
+
 
 import discord
 
@@ -89,7 +95,7 @@ class MyClient(discord.Client):
                          player.display_name,
                          lobby.name,
                          ", ".join([e.to_string() for e in tags]))
-        await self.ref.put(PlayerJoined("{}".format(player.id), tags))
+        await self.ref.put(PlayerJoined("{}".format(player.id), tags, nick=player.display_name))
 
     async def _on_leaving_lobby(self, mem: discord.Member):
         """Called when disconnecting from any VC (team or lobby)"""
@@ -170,11 +176,28 @@ class MyClient(discord.Client):
             self.logger.debug('Saving btag %s for %s',
                               message.content,
                               message.author.display_name)
+                              
+            
             try:
-                player.btags.append(Btag(message.content))
+                btag = Btag(message.content)
             except:
                 await message.channel.send("Battle tag not understood, please resend it")
                 return
+                 
+            if btag not in player.btags:
+                player.btags.append(btag)
+            else:
+                # Move to last element
+                player.btags.remove(btag)
+                player.btags.append(btag)
+                await message.channel.send("You are already registered with that battle tag!")
+                
+            if not await self._check_btag_exists(btag):
+                await message.channel.send("Could not get player data, are you sure you input battl;e tag correctly? (e.g. PlayerName#1235)")
+                return
+                
+                
+            
             if not player.is_registered:
                 self.logger.debug('Notifying backend of new player %s joining VC for the first time',
                                   message.author.display_name)
@@ -352,3 +375,30 @@ class MyClient(discord.Client):
             # Changing lobby
             await self._on_changing_lobby(mem, before, after)
             return
+
+    async def _check_btag_exists(self, btag: Btag):
+        # https://playoverwatch.com/en-us/career/pc/{}/
+        
+        
+        #TODO: Proper header
+        _hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+           'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+           'Accept-Encoding': 'none',
+          
+          'Accept-Language': 'en-US,en;q=0.8',
+           'Connection': 'keep-alive' }
+           
+        try:
+            query = "https://ow-api.com/v1/stats/pc/EU/{}/profile".format(btag.for_api())
+            request = urllib.request.Request(query, None, _hdr)
+            response = urllib.request.urlopen(request)
+            response = response.read()
+        except urllib.error.HTTPError:
+            return False
+        data = json.loads(response.decode('utf-8'))
+        if "name" in data.keys():
+            return True
+        else:
+            return False
+        

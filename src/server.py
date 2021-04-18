@@ -38,31 +38,33 @@ class MessageBus:
 class GameLobby:
     def __init__(self):
         self.messageBus = MessageBus()
+        
+    async def lobbySetUp(self):    
         self.lobbyPlayers = [
-            {   # Feeniks is high rank
-                "id": "dummy.0",
-                "title": "Feeniks",
-                "group": "waiting",
-                "selectedRoles": ["tank", "support"],
-                "profileData": getOverwatchProfile("Feeniks#21541"),
-            },
-            {   # Joshi has placed on all roles
-                "id": "dummy.1",
-                "title": "SuperJoshi94",
-                "group": "waiting",
-                "selectedRoles": ["damage"],
-                "profileData": getOverwatchProfile("SuperJoshi94#2645"),
-            },
-            {   # Lio has placed on all roles but no public profile
-                "id": "dummy.2",
-                "title": "LioKioNio",
-                "group": "waiting",
-                "selectedRoles": ["tank"],
-                "profileData": getOverwatchProfile("LioKioNio#2969"),
-            },
-        ]
+                {   # Feeniks is high rank
+                    "id": "dummy.0",
+                    "title": "Feeniks",
+                    "group": "waiting",
+                    "selectedRoles": ["tank", "support"],
+                    "profileData": await getOverwatchProfile("Feeniks#21541"),
+                },
+                {   # Joshi has placed on all roles
+                    "id": "dummy.1",
+                    "title": "SuperJoshi94",
+                    "group": "waiting",
+                    "selectedRoles": ["damage"],
+                    "profileData": await getOverwatchProfile("SuperJoshi94#2645"),
+                },
+                {   # Lio has placed on all roles but no public profile
+                    "id": "dummy.2",
+                    "title": "LioKioNio",
+                    "group": "waiting",
+                    "selectedRoles": ["tank"],
+                    "profileData": await getOverwatchProfile("LioKioNio#2969"),
+                },
+            ]
 
-    def processMessage(self, msg):
+    async def processMessage(self, msg):
         msg_type = msg["event"]
         msg_data = msg["data"]
 
@@ -86,7 +88,7 @@ class GameLobby:
             # Do it manually for now
             
             player = self._findPlayer(msg_data["playerID"])
-            update = { "profileData": getOverwatchProfile(player["profileData"]["tag"], force_update=True ) }
+            update = { "profileData": await getOverwatchProfile(player["profileData"]["tag"], force_update=True ) }
 
             self._updatePlayerData(msg_data["playerID"], update)
             self._broadcast({
@@ -104,7 +106,7 @@ class GameLobby:
         msg = json.dumps(msg)
         self.messageBus.broadcast(msg)
 
-    def playerJoin(self, playerId, bnetId):
+    async def playerJoin(self, playerId, bnetId, name=None):
         playerId = str(playerId) # kinda a hack to ensure all types are the same
         
         #Check if player already in lobby:
@@ -114,10 +116,10 @@ class GameLobby:
         # Create new lobby player
         playerData = {
             "id": playerId,
-            "title": playerId,
+            "title": (name if name else playerId),
             "group": "waiting",
             "selectedRoles": ["tank", "damage", "support"],
-            "profileData": getOverwatchProfile(bnetId),
+            "profileData": await getOverwatchProfile(bnetId),
         }
         if self._addPlayer(playerData):
             self._broadcast({
@@ -222,8 +224,8 @@ def _getOverwatchProfile(bnetId):
     return profile
 
 careerDatabase = CareerDatabase()
-def getOverwatchProfile(btag, force_update=False):
-    stats = careerDatabase.getStats(Btag(btag), force_update)
+async def getOverwatchProfile(btag, force_update=False):
+    stats = await careerDatabase.getStats(Btag(btag), force_update)
     return stats.__getFormattedHack__()
 
 
@@ -289,8 +291,9 @@ async def broadcastLobbyUpdates():
             yield "data: {}\n\n".format(msg).encode('utf-8')
             
     response = Response(stream(), mimetype="text/event-stream")
-    response.headers['Cache-Control'] = 'no-cache';
-    response.headers['X-Accel-Buffering'] = 'no';
+    response.headers['Cache-Control'] = 'no-cache'
+    response.headers['X-Accel-Buffering'] = 'no'
+    response.timeout = None
     return response
 
 @app.route('/lobbyupdates', methods=['POST'])
@@ -303,7 +306,7 @@ async def processLobbyUpdates():
     #       - check if function suceeded and send appropriate message
     msg = json.loads(msg)
 
-    success = lobby.processMessage(msg)
+    success = await lobby.processMessage(msg)
     if success:
         return ('', 200)
     else:
@@ -332,7 +335,7 @@ async def read_queue(queue: asyncio.Queue):
     while True:
         message = await queue.get()
         if isinstance(message, messages.PlayerJoined):
-            lobby.playerJoin(message.player, message.btags[0].to_string())
+            await lobby.playerJoin(message.player, message.btags[-1].to_string(), name=message.nick)
         if isinstance(message, messages.PlayerLeft):
             lobby.playerLeave(message.player)
 
@@ -342,6 +345,7 @@ async def run(port):
 
 
 async def main(queue: asyncio.Queue, port=8080):
+    await lobby.lobbySetUp()
     await asyncio.gather(
         run(port),
         read_queue(queue)
