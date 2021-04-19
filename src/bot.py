@@ -5,14 +5,13 @@ and what will be imported to run it
 
 import sys
 import logging
-from typing import Dict, List, Union
+from typing import Dict, List, Set, Union
+from collections import OrderedDict
 
 import urllib.request
 import json
 
 import asyncio
-
-
 
 import discord
 
@@ -44,11 +43,14 @@ class PUGPlayerStatus:
     """ Group info regarding a player status when they're in a VC"""
     def __init__(self, member: discord.Member,
                  lobby: discord.VoiceChannel,
-                 btags: List[Btag]):
+                 btags: OrderedDict[Btag, bool]):
         self.member = member
         self.lobby: Union[discord.VoiceChannel, None] = lobby
         self.btags = btags
         self.is_registered = False
+
+    def add_btag(self, btag: Btag):
+        self.btags[btag] = True
 
 
 def _invert_lobby_lookup(config: Dict[int, GuildConfig]) -> Dict[int, Dict[int, int]]:
@@ -83,7 +85,7 @@ class MyClient(discord.Client):
     }
     invert_lobby_lookup = _invert_lobby_lookup(CONFIG)
 
-    async def _on_registration(self, player: discord.Member, tags: List[Btag],
+    async def _on_registration(self, player: discord.Member, tags: OrderedDict[Btag, bool],
                                lobby: discord.VoiceChannel):
         """
         Function handling a player joining a VC for the first time.
@@ -119,13 +121,13 @@ class MyClient(discord.Client):
     async def _on_changing_lobby(self, mem: discord.Member,
                                  before: discord.VoiceState,
                                  after: discord.VoiceState):
+        """Called when changing from a lobby to another"""
         assert before.channel
         assert after.channel
         self.logger.info("%s moved from %s to %s",
                          mem.display_name,
                          before.channel.name,
                          after.channel.name)
-        """Called when changing from a lobby to another"""
         pass
 
     async def _on_going_team_vc(self, mem: discord.Member,
@@ -176,38 +178,28 @@ class MyClient(discord.Client):
             self.logger.debug('Saving btag %s for %s',
                               message.content,
                               message.author.display_name)
-                              
-            
             try:
                 btag = Btag(message.content)
+                player.add_btags(btag)
+                if not await self._check_btag_exists(btag):
+                    await message.channel.send("Could not get player data, are you sure you input battle tag correctly? (e.g. PlayerName#1235)")
+                else:
+                    # FIXME: when the server can handle multiple btags, notify it when adding btag
+                    if not player.is_registered:
+                        self.logger.debug('Notifying backend of new player %s joining VC for the first time',
+                                          message.author.display_name)
+                        player.is_registered = True
+                        await self._on_registration(player.member,
+                                                    player.btags,
+                                                    player.lobby)
+                        await message.channel.send("{} is registered with {}"
+                                                   .format(message.author.display_name,
+                                                           ", ".join([e.to_string() for e in self.players[message.author.id].btags])))
+                    else:
+                        self.logger.debug('Player %s already registered in the backend',
+                                          message.author.display_name)
             except:
                 await message.channel.send("Battle tag not understood, please resend it")
-                return
-                 
-            if btag not in player.btags:
-                player.btags.append(btag)
-            else:
-                # Move to last element
-                player.btags.remove(btag)
-                player.btags.append(btag)
-                await message.channel.send("You are already registered with that battle tag!")
-                
-            if not await self._check_btag_exists(btag):
-                await message.channel.send("Could not get player data, are you sure you input battl;e tag correctly? (e.g. PlayerName#1235)")
-                return
-                
-                
-            
-            if not player.is_registered:
-                self.logger.debug('Notifying backend of new player %s joining VC for the first time',
-                                  message.author.display_name)
-                player.is_registered = True
-                await self._on_registration(player.member,
-                                            player.btags,
-                                            player.lobby)
-            await message.channel.send("{} is registered with {}"
-                                       .format(message.author.display_name,
-                                               ", ".join([e.to_string() for e in self.players[message.author.id].btags])))
 
     async def on_message(self, message):
         """Execute when received message"""
@@ -223,7 +215,7 @@ class MyClient(discord.Client):
 
     async def _send_registration_dm(self, mem: discord.Member,
                                     after: discord.VoiceChannel):
-        self.players[mem.id] = PUGPlayerStatus(mem, after, [])
+        self.players[mem.id] = PUGPlayerStatus(mem, after, OrderedDict())
         self.logger.info('Registering %s for lobby %s',
                          mem.name,
                          after.name)
@@ -231,6 +223,7 @@ class MyClient(discord.Client):
         await dm_chan.send("Give me your battle tag:")
 
     # FIXME: don't assume that before and after guild are the same
+    # FIXME: check with refactoring where the player can come from
     async def _handle_joining_lobby(self, mem: discord.Member,
                                     before: discord.VoiceState,
                                     after: discord.VoiceState):
@@ -378,17 +371,13 @@ class MyClient(discord.Client):
 
     async def _check_btag_exists(self, btag: Btag):
         # https://playoverwatch.com/en-us/career/pc/{}/
-        
-        
         #TODO: Proper header
         _hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-           'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-           'Accept-Encoding': 'none',
-          
-          'Accept-Language': 'en-US,en;q=0.8',
-           'Connection': 'keep-alive' }
-           
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+                'Accept-Encoding': 'none',
+                'Accept-Language': 'en-US,en;q=0.8',
+                'Connection': 'keep-alive' }
         try:
             query = "https://ow-api.com/v1/stats/pc/EU/{}/profile".format(btag.for_api())
             request = urllib.request.Request(query, None, _hdr)
@@ -397,8 +386,4 @@ class MyClient(discord.Client):
         except urllib.error.HTTPError:
             return False
         data = json.loads(response.decode('utf-8'))
-        if "name" in data.keys():
-            return True
-        else:
-            return False
-        
+        return 'name' in data.keys()

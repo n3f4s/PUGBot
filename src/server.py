@@ -335,7 +335,7 @@ async def read_queue(queue: asyncio.Queue):
     while True:
         message = await queue.get()
         if isinstance(message, messages.PlayerJoined):
-            await lobby.playerJoin(message.player, message.btags[-1].to_string(), name=message.nick)
+            await lobby.playerJoin(message.player, list(message.btags.keys())[-1].to_string(), name=message.nick)
         if isinstance(message, messages.PlayerLeft):
             lobby.playerLeave(message.player)
 
