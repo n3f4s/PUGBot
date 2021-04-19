@@ -21,13 +21,12 @@ from btag import Btag
 from messages import PlayerJoined, PlayerLeft
 
 # TODO:
-# 1- check that nothing is broken
-# 3.3- test
-# 3.4- handle player leaving
-# 3.5- fault resistance
-# 4- Persistence
-# 5- integrate with backend
-# 6- Actual DB
+# 3- test
+# 4- Handle changing lobbies
+# 5- fault resistance
+# 6- Persistence
+# 7- Config depending on server
+# 8- Actual DB
 
 CONFIG = {
     823930184067579954: GuildConfig(823930184067579954,
