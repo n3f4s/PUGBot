@@ -522,9 +522,6 @@
             
             const updateData = evt.updateData;
             
-            console.log(player);
-            console.log(updateData);
-            
             Object.assign(player, updateData);
           },
           
@@ -909,7 +906,7 @@
 
       template: `
         <div>
-          AVR: {{ averageSr.toFixed(0) }}
+          {{ averageSr ? averageSr.toFixed(0) : '-' }}
         </div>`,
         
       methods: {
@@ -988,11 +985,15 @@
     
     <div class="row">
       <div id="app" class="col l12">
-          <div class="col l3 push-l1 m5">
+          <div class="col l4 push-l1 m4">
+            Must-Picks:
+            <player-group group-id="priority" :players="players" ></player-group>
+            Players:
             <player-group group-id="waiting" :players="players" ></player-group>
           </div>
           
-          <div v-for="team in teams" class="col l2 push-l1 m3" :class="'team-'+team" >
+          <div v-for="team in teams" class="col l3 push-l1 m4" :class="'team-'+team" >
+            <div class="title"> Team {{ team }} </div>
             <div v-for="role in roles">
               <player-group
                 :ref="team+'.'+role+'.1'"
@@ -1012,12 +1013,12 @@
               </player-group>
               <sr-counter :track="[ team+'.'+role+'.*' ]" ></sr-counter>
             </div>
-            {{ team }}
             <sr-counter :track="[ team+'.*' ]" ></sr-counter>
           </div>
         </div>
       </div>
     </div>
+    
   </div>
 
 </body>
