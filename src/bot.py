@@ -5,7 +5,7 @@ and what will be imported to run it
 
 import sys
 import logging
-from typing import Dict, List, Set, Union
+from typing import Dict, List, Set, Union, Tuple, Callable, Awaitable
 from collections import OrderedDict
 
 import urllib.request
@@ -19,6 +19,7 @@ from guildconf import GuildConfig, LobbyVC
 from btag import Btag
 
 from messages import PlayerJoined, PlayerLeft
+import helper
 
 # TODO:
 # 3- test
@@ -28,14 +29,6 @@ from messages import PlayerJoined, PlayerLeft
 # 7- Config depending on server
 # 8- Actual DB
 
-CONFIG = {
-    823930184067579954: GuildConfig(823930184067579954,
-                                    [LobbyVC("Test",
-                                             823930184067579958,
-                                             823930252526485606,
-                                             823930252526485606)],
-                                    "%")
- }
 
 
 class PUGPlayerStatus:
@@ -67,6 +60,8 @@ class MyClient(discord.Client):
     """Set up and log bot in discord"""
 
     def __init__(self, ref: asyncio.Queue):
+        from cmd_config import CmdConfigBot, CmdConfigPrint
+        from commands import Command
         super().__init__()
         self.logger = logging.getLogger("Bot")
         self.logger.setLevel(logging.DEBUG)
@@ -75,14 +70,29 @@ class MyClient(discord.Client):
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
         self.ref = ref
+        self.config = helper.load_config()
+        self.commands: Dict[str, Command] = {
+            CmdConfigBot.name(): CmdConfigBot(self),
+            CmdConfigPrint.name(): CmdConfigPrint(self)
+        }
+        self.reaction_callbacks: Dict[int,
+                                 Callable[[discord.Reaction,
+                                           Union[discord.Member, discord.User]],
+                                          Awaitable[bool]]] = {}
 
-    players: Dict[int, PUGPlayerStatus] = {}
-    all_vc: Dict[int, List[int]] = {
-        guild: [lobby for lobbyVC in cfg.lobbies
-                for lobby in [lobbyVC.lobby, lobbyVC.team1, lobbyVC.team2]]
-        for (guild, cfg) in CONFIG.items()
-    }
-    invert_lobby_lookup = _invert_lobby_lookup(CONFIG)
+        self.players: Dict[int, PUGPlayerStatus] = {}
+
+    @property
+    def all_vc(self):
+        return {
+            guild: [lobby for lobbyVC in cfg.lobbies
+                    for lobby in [lobbyVC.lobby, lobbyVC.team1, lobbyVC.team2]]
+            for (guild, cfg) in self.config.items()
+        }
+
+    @property
+    def invert_lobby_lookup(self):
+        return _invert_lobby_lookup(self.config)
 
     async def _on_registration(self, player: discord.Member, tags: OrderedDict[Btag, bool],
                                lobby: discord.VoiceChannel):
@@ -157,6 +167,13 @@ class MyClient(discord.Client):
     async def on_ready(self):
         """Execute when client is ready"""
         self.logger.info('Logged on as %s!', self.user)
+        for guild in self.guilds:
+            if guild.id not in self.config:
+                self.logger.debug('Guild %s has no config, generating default', guild.name)
+                self.logger.debug('config keys: %s', ", ".join(self.config.keys()))
+                self.logger.debug('guild id: %s', guild.id)
+                self.config[guild.id] = GuildConfig(guild.id, [], "%")
+        helper.save_config(self.config)
 
     async def on_dm(self, message):
         """
@@ -200,14 +217,43 @@ class MyClient(discord.Client):
             except:
                 await message.channel.send("Battle tag not understood, please resend it")
 
+    def _parse_command(self, message: discord.Message, content: str) -> Tuple[str, List[str]]:
+        args = content.split()
+        return (args[0], args[1:])
+
+    async def _on_command(self, message: discord.Message):
+        content = message.content[1:]
+        command, args = self._parse_command(message, content)
+        if command == "help":
+            await message.channel.send("Command list: {}".format(", ".join(self.commands.keys())))
+        elif command in self.commands:
+            await self.commands[command].execute(message, args)
+        else:
+            await message.channel.send("Command {} not found".format(command))
+
     async def on_message(self, message):
         """Execute when received message"""
-        if isinstance(message.channel, discord.DMChannel) and not message.author.bot:
+        if message.author.bot:
+            return
+        if isinstance(message.channel, discord.DMChannel):
             await self.on_dm(message)
+        if isinstance(message.channel, discord.TextChannel):
+            guild = message.guild.id
+            if message.content[0] == self.config[guild].prefix:
+                await self._on_command(message)
+
+    async def on_reaction_add(self, reaction: discord.Reaction,
+                              user: Union[discord.Member, discord.User]):
+        if user.bot:
+            return
+        if not reaction.message.id in self.reaction_callbacks:
+            return
+        if await self.reaction_callbacks[reaction.message.id](reaction, user):
+            del self.reaction_callbacks[reaction.message.id]
 
     def _come_from_team_vc(self, guild: int, before: int, after: int) -> bool:
         """Test if the player is moving from a team VC to the corresponding lobby VC"""
-        for lobby in CONFIG[guild].lobbies:
+        for lobby in self.config[guild].lobbies:
             if lobby.lobby == after and before in (lobby.team1, lobby.team2):
                 return True
         return False
@@ -268,7 +314,7 @@ class MyClient(discord.Client):
 
     def _is_lobby(self, channel: discord.VoiceChannel) -> bool:
         return (channel.id in [vc.lobby for vc
-                                in CONFIG[channel.guild.id].lobbies])
+                                in self.config[channel.guild.id].lobbies])
 
     def _is_pugs(self, channel: discord.VoiceChannel) -> bool:
         return (channel.id in self.all_vc[channel.guild.id])
@@ -367,6 +413,9 @@ class MyClient(discord.Client):
             # Changing lobby
             await self._on_changing_lobby(mem, before, after)
             return
+
+    async def on_guild_join(self, guild):
+        self.config[guild.id] = GuildConfig(guild.id, [], "%")
 
     async def _check_btag_exists(self, btag: Btag):
         # https://playoverwatch.com/en-us/career/pc/{}/
