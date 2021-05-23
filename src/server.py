@@ -45,7 +45,7 @@ def render_template(name, **kwargs):
 
 @app.route('/')
 async def root():
-    return render_template('index.html', lobbyPlayers=lobby.lobbyPlayers)
+    return redirect('/lobbies')
 
 
 def get_lobby(server_id, lobby_name):
@@ -77,7 +77,7 @@ async def render_lobby(server_id, lobby_name):
     
     
 @app.route('/<int:server_id>/<lobby_name>/lobbyupdates', methods=['GET'])
-async def _broadcastLobbyUpdates(server_id, lobby_name):
+async def broadcastLobbyUpdates(server_id, lobby_name):
 
     lobby = get_lobby(server_id, lobby_name)
     if lobby is None:
@@ -99,7 +99,7 @@ async def _broadcastLobbyUpdates(server_id, lobby_name):
 
     
 @app.route('/<int:server_id>/<lobby_name>/lobbyupdates', methods=['POST'])
-async def _processLobbyUpdates(server_id, lobby_name):
+async def processLobbyUpdates(server_id, lobby_name):
     lobby = get_lobby(server_id, lobby_name)
     if lobby is None:
         return ("No lobby here :(", 404)
