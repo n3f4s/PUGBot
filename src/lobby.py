@@ -30,30 +30,32 @@ class GameLobby:
         self.messageBus = MessageBus()
         self.lobbyPlayers = None
         
-    async def lobbySetUp(self):    
-        self.lobbyPlayers = [
-                {   # Feeniks is high rank
-                    "id": "dummy.0",
-                    "title": "Feeniks",
-                    "group": "waiting",
-                    "selectedRoles": ["tank", "support"],
-                    "profileData": await getOverwatchProfile("Feeniks#21541"),
-                },
-                {   # Joshi has placed on all roles
-                    "id": "dummy.1",
-                    "title": "SuperJoshi94",
-                    "group": "waiting",
-                    "selectedRoles": ["damage"],
-                    "profileData": await getOverwatchProfile("SuperJoshi94#2645"),
-                },
-                {   # Lio has placed on all roles but no public profile
-                    "id": "dummy.2",
-                    "title": "LioKioNio",
-                    "group": "waiting",
-                    "selectedRoles": ["tank"],
-                    "profileData": await getOverwatchProfile("LioKioNio#2969"),
-                },
-            ]
+    async def lobbySetUp(self, debug=False):
+        self.lobbyPlayers = []
+        if debug:
+            self.lobbyPlayers = [
+                    {   # Feeniks is high rank
+                        "id": "dummy.0",
+                        "title": "Feeniks",
+                        "group": "waiting",
+                        "selectedRoles": ["tank", "support"],
+                        "profileData": await getOverwatchProfile("Feeniks#21541"),
+                    },
+                    {   # Joshi has placed on all roles
+                        "id": "dummy.1",
+                        "title": "SuperJoshi94",
+                        "group": "waiting",
+                        "selectedRoles": ["damage"],
+                        "profileData": await getOverwatchProfile("SuperJoshi94#2645"),
+                    },
+                    {   # Lio has placed on all roles but no public profile
+                        "id": "dummy.2",
+                        "title": "LioKioNio",
+                        "group": "waiting",
+                        "selectedRoles": ["tank"],
+                        "profileData": await getOverwatchProfile("LioKioNio#2969"),
+                    },
+                ]
 
     async def processMessage(self, msg):
         msg_type = msg["event"]

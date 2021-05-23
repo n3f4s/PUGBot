@@ -32,8 +32,12 @@ def load_config():
         json_v = json.loads(cfgfile.read())
         config = {}
         for k, v in json_v.items():
-            lobbies = [LobbyVC(l['name'], l['lobby'], l['team1'], l['team2'])
-                       for l in v['lobbies']]
+            if isinstance(v['lobbies'], list):
+                lobbyitems = v['lobbies']
+            elif isinstance(v['lobbies'], dict):
+                lobbyitems = v['lobbies'].values()
+            lobbies = { l['name']: LobbyVC(l['name'], l['lobby'], l['team1'], l['team2'])
+                       for l in lobbyitems }
             prefix = v['prefix']
             id_ = v['guild_id']
             config[int(k)] = GuildConfig(id_, lobbies, prefix)

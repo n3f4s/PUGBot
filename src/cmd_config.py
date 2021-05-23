@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 
 import logging
 from commands import Command
@@ -62,14 +63,16 @@ class CfgReactionHandler:
         self.logger.debug("%d channel registered", len(self.vcs))
         await reaction.message.edit(content=self._format_update_msg())
         if len(self.vcs) >= 3 and reaction.message.guild:
+                                    
             (self.config[reaction.message.guild.id]
              .lobbies
-             .append(LobbyVC(self.name,
-                             self.vcs[0].id,
-                             self.vcs[1].id,
-                             self.vcs[2].id)))
+             .update({ self.name: LobbyVC(self.name,
+                                          self.vcs[0].id,
+                                          self.vcs[1].id,
+                                          self.vcs[2].id) }))                       
             helper.save_config(self.config)
             self.logger.debug("Updating configuration")
+            
             return True
         return False
 
@@ -138,9 +141,10 @@ class CmdConfigPrint(Command):
 **PUG lobbies**:
 {}
         """.format(guild_name, self.client().config[guild.id].prefix,
-                   self._format_lobbies(self.client().config[guild.id].lobbies))
+                   self._format_lobbies(self.client().config[guild.id].lobbies.values()))
         await chan.send(res_str)
 
+        
 class CmdConfigBot(Command):
 
     logger = helper.default_logger("configbot", logging.DEBUG)
@@ -154,6 +158,8 @@ class CmdConfigBot(Command):
                  "🇱", "🇲", "🇳", "🇴", "🇵",
                  "🇶", "🇷", "🇸", "🇹", "🇺",
                  "🇻", "🇼", "🇽", "🇾", "🇿"]
+
+    all_category_reaction = "🔠"
 
     def _list_vc(self, cat: discord.CategoryChannel) -> Dict[str, discord.VoiceChannel]:
         return dict(zip(self.reactions, [vc for vc in cat.voice_channels]))
@@ -177,11 +183,10 @@ class CmdConfigBot(Command):
         for entry in reactions.values():
             for name, vc in entry.voice_chan.items():
                 all_cat[name] = vc
-        reactions["All Categories"] = CategoryEntry("All Categories",
-                                                    all_cat)
+        reactions[self.all_category_reaction] = CategoryEntry("All Categories", all_cat)
         for emoji, cat in reactions.items():
             if isinstance(cat.cat, str):
-                res += "{} {}\n".format(emoji, cat)
+                res += "{} {}\n".format(emoji, cat.cat)
             elif isinstance(cat.cat, discord.CategoryChannel):
                 res += "{} <#{}>\n".format(emoji, cat.cat.id)
         chan = message.channel

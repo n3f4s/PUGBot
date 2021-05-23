@@ -49,7 +49,7 @@ def _invert_lobby_lookup(config: Dict[int, GuildConfig]) -> Dict[int, Dict[int, 
     res = {}
     for (gid, cfg) in config.items():
         tmp = {}
-        for lobby in cfg.lobbies:
+        for lobby in cfg.lobbies.values():
             tmp[lobby.team1] = lobby.lobby
             tmp[lobby.team2] = lobby.lobby
         res[gid] = tmp
@@ -85,7 +85,7 @@ class MyClient(discord.Client):
     @property
     def all_vc(self):
         return {
-            guild: [lobby for lobbyVC in cfg.lobbies
+            guild: [lobby for lobbyVC in cfg.lobbies.values()
                     for lobby in [lobbyVC.lobby, lobbyVC.team1, lobbyVC.team2]]
             for (guild, cfg) in self.config.items()
         }
@@ -106,15 +106,24 @@ class MyClient(discord.Client):
                          player.display_name,
                          lobby.name,
                          ", ".join([e.to_string() for e in tags]))
-        await self.ref.put(PlayerJoined("{}".format(player.id), tags, nick=player.display_name))
+        server_id = lobby.guild.id
+        lobby_name = self._get_pugs_lobby(lobby).name
+        await self.ref.put(PlayerJoined("{}".format(player.id),
+                                        tags,
+                                        server_id,
+                                        lobby_name,
+                                        nick=player.display_name))
 
-    async def _on_leaving_lobby(self, mem: discord.Member):
+    async def _on_leaving_lobby(self, mem: discord.Member, lobby: discord.VoiceChannel):
         """Called when disconnecting from any VC (team or lobby)"""
         if mem.id in self.players:
             self.logger.info("%s left a PUG lobby", mem.display_name)
             self.players[mem.id].lobby = None
             self.logger.debug("Notifying backend of %s departure", mem.display_name)
-            await self.ref.put(PlayerLeft("{}".format(mem.id)))
+            
+            server_id = lobby.guild.id
+            lobby_name = self._get_pugs_lobby(lobby).name
+            await self.ref.put(PlayerLeft("{}".format(mem.id), server_id, lobby_name))
 
     async def _on_joining_lobby(self, mem: discord.Member,
                                 before: discord.VoiceState,
@@ -172,7 +181,7 @@ class MyClient(discord.Client):
                 self.logger.debug('Guild %s has no config, generating default', guild.name)
                 self.logger.debug('config keys: %s', ", ".join(self.config.keys()))
                 self.logger.debug('guild id: %s', guild.id)
-                self.config[guild.id] = GuildConfig(guild.id, [], "%")
+                self.config[guild.id] = GuildConfig(guild.id, {}, "%")
         helper.save_config(self.config)
 
     async def on_dm(self, message):
@@ -196,26 +205,29 @@ class MyClient(discord.Client):
                               message.author.display_name)
             try:
                 btag = Btag(message.content)
-                player.add_btags(btag)
-                if not await self._check_btag_exists(btag):
-                    await message.channel.send("Could not get player data, are you sure you input battle tag correctly? (e.g. PlayerName#1235)")
-                else:
-                    # FIXME: when the server can handle multiple btags, notify it when adding btag
-                    if not player.is_registered:
-                        self.logger.debug('Notifying backend of new player %s joining VC for the first time',
-                                          message.author.display_name)
-                        player.is_registered = True
-                        await self._on_registration(player.member,
-                                                    player.btags,
-                                                    player.lobby)
-                        await message.channel.send("{} is registered with {}"
-                                                   .format(message.author.display_name,
-                                                           ", ".join([e.to_string() for e in self.players[message.author.id].btags])))
-                    else:
-                        self.logger.debug('Player %s already registered in the backend',
-                                          message.author.display_name)
             except:
                 await message.channel.send("Battle tag not understood, please resend it")
+                return 
+                
+            player.add_btag(btag)
+            if not await self._check_btag_exists(btag):
+                await message.channel.send("Could not get player data, are you sure you input battle tag correctly (with correct capitalisation)? (e.g. PlayerName#1235)")
+            else:
+                # FIXME: when the server can handle multiple btags, notify it when adding btag
+                if not player.is_registered:
+                    self.logger.debug('Notifying backend of new player %s joining VC for the first time',
+                                      message.author.display_name)
+                    player.is_registered = True
+                    await self._on_registration(player.member,
+                                                player.btags,
+                                                player.lobby)
+                    await message.channel.send("{} is registered with {}"
+                                               .format(message.author.display_name,
+                                                       ", ".join([e.to_string() for e in self.players[message.author.id].btags])))
+                else:
+                    self.logger.debug('Player %s already registered in the backend',
+                                      message.author.display_name)
+
 
     def _parse_command(self, message: discord.Message, content: str) -> Tuple[str, List[str]]:
         args = content.split()
@@ -253,7 +265,7 @@ class MyClient(discord.Client):
 
     def _come_from_team_vc(self, guild: int, before: int, after: int) -> bool:
         """Test if the player is moving from a team VC to the corresponding lobby VC"""
-        for lobby in self.config[guild].lobbies:
+        for lobby in self.config[guild].lobbies.values():
             if lobby.lobby == after and before in (lobby.team1, lobby.team2):
                 return True
         return False
@@ -314,10 +326,18 @@ class MyClient(discord.Client):
 
     def _is_lobby(self, channel: discord.VoiceChannel) -> bool:
         return (channel.id in [vc.lobby for vc
-                                in self.config[channel.guild.id].lobbies])
+                                in self.config[channel.guild.id].lobbies.values()])
 
     def _is_pugs(self, channel: discord.VoiceChannel) -> bool:
         return (channel.id in self.all_vc[channel.guild.id])
+        
+    def _get_pugs_lobby(self, channel: discord.VoiceChannel):
+        """Gets PUGs lobby of discord channel"""
+        for lobby in self.config[channel.guild.id].lobbies.values():
+            if channel.id in [lobby.lobby, lobby.team1, lobby.team2 ]:
+                return lobby
+        else:
+            return None
 
     def _is_joining_lobby(self, guild_id: str,
                           before: discord.VoiceState,
@@ -341,7 +361,8 @@ class MyClient(discord.Client):
         """Return true if team is one of the team VC corresponding to the lobby lobby"""
         return (team.id in self.invert_lobby_lookup[team.guild.id]
                 and self.invert_lobby_lookup[team.guild.id][team.id] == lobby.id)
-
+           
+                
     # FIXME:
     # 1. If someone join, mark them as "logged in"
     # 2. If someone join the wrong lobby first then join the right lobby, still ask the btag
@@ -390,7 +411,7 @@ class MyClient(discord.Client):
         if (not (after.channel and self._is_pugs(after.channel))
             and (before.channel and self._is_pugs(before.channel))):
             # Leaving a pug voice channel
-            await self._on_leaving_lobby(mem)
+            await self._on_leaving_lobby(mem, before.channel)
             return
 
         if (after.channel and before.channel
@@ -415,7 +436,7 @@ class MyClient(discord.Client):
             return
 
     async def on_guild_join(self, guild):
-        self.config[guild.id] = GuildConfig(guild.id, [], "%")
+        self.config[guild.id] = GuildConfig(guild.id, {}, "%")
 
     async def _check_btag_exists(self, btag: Btag):
         # https://playoverwatch.com/en-us/career/pc/{}/

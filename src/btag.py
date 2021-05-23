@@ -20,6 +20,9 @@ class Btag:
 
     def __str__(self):
         return self.to_string()
+        
+    def __hash__(self):
+        return hash(str(self))
 
     def __eq__(self, other):
         if isinstance(other, Btag):
