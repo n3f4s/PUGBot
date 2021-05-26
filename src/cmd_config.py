@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 import logging
 from commands import Command
@@ -63,16 +63,14 @@ class CfgReactionHandler:
         self.logger.debug("%d channel registered", len(self.vcs))
         await reaction.message.edit(content=self._format_update_msg())
         if len(self.vcs) >= 3 and reaction.message.guild:
-                                    
             (self.config[reaction.message.guild.id]
              .lobbies
-             .update({ self.name: LobbyVC(self.name,
+             .update({self.name: LobbyVC(self.name,
                                           self.vcs[0].id,
                                           self.vcs[1].id,
-                                          self.vcs[2].id) }))                       
+                                          self.vcs[2].id)}))
             helper.save_config(self.config)
             self.logger.debug("Updating configuration")
-            
             return True
         return False
 

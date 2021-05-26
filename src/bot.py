@@ -62,7 +62,9 @@ class MyClient(discord.Client):
     def __init__(self, ref: asyncio.Queue):
         from cmd_config import CmdConfigBot, CmdConfigPrint
         from commands import Command
+        from voice_channel_manager import VoiceChannelManager
         super().__init__()
+        self._vc_mgr = VoiceChannelManager(self)
         self.logger = logging.getLogger("Bot")
         self.logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter('[%(asctime)s] [%(name)s] [%(levelname)s]: %(message)s')
@@ -114,65 +116,6 @@ class MyClient(discord.Client):
                                         lobby_name,
                                         nick=player.display_name))
 
-    async def _on_leaving_lobby(self, mem: discord.Member, lobby: discord.VoiceChannel):
-        """Called when disconnecting from any VC (team or lobby)"""
-        if mem.id in self.players:
-            self.logger.info("%s left a PUG lobby", mem.display_name)
-            self.players[mem.id].lobby = None
-            self.logger.debug("Notifying backend of %s departure", mem.display_name)
-            
-            server_id = lobby.guild.id
-            lobby_name = self._get_pugs_lobby(lobby).name
-            await self.ref.put(PlayerLeft("{}".format(mem.id), server_id, lobby_name))
-
-    async def _on_joining_lobby(self, mem: discord.Member,
-                                before: discord.VoiceState,
-                                after: discord.VoiceState):
-        """Called when connecting to a lobby VC (when not connected before)"""
-        # FIXME: check if all the cases have been handled
-        assert after.channel
-        self.logger.info("%s joined the PUG lobby %s",
-                         mem.display_name,
-                         after.channel.name)
-        await self._handle_joining_lobby(mem, before, after)
-
-    async def _on_changing_lobby(self, mem: discord.Member,
-                                 before: discord.VoiceState,
-                                 after: discord.VoiceState):
-        """Called when changing from a lobby to another"""
-        assert before.channel
-        assert after.channel
-        self.logger.info("%s moved from %s to %s",
-                         mem.display_name,
-                         before.channel.name,
-                         after.channel.name)
-        pass
-
-    async def _on_going_team_vc(self, mem: discord.Member,
-                                before: discord.VoiceState,
-                                after: discord.VoiceState):
-        """Called when going from a lobby to a team VC"""
-        assert before.channel
-        assert after.channel
-        self.logger.info("%s went from lobby %s to team VC %s",
-                         mem.display_name,
-                         before.channel.name,
-                         after.channel.name)
-        pass
-
-    async def _on_back_lobby(self, mem: discord.Member,
-                             before: discord.VoiceState,
-                             after: discord.VoiceState):
-        """Called when going from a team VC
-        to the corresponding lobby"""
-        assert before.channel
-        assert after.channel
-        self.logger.info("%s went from team VC %s to lobby %s",
-                         mem.display_name,
-                         before.channel.name,
-                         after.channel.name)
-        pass
-
     async def on_ready(self):
         """Execute when client is ready"""
         self.logger.info('Logged on as %s!', self.user)
@@ -207,8 +150,7 @@ class MyClient(discord.Client):
                 btag = Btag(message.content)
             except:
                 await message.channel.send("Battle tag not understood, please resend it")
-                return 
-                
+                return
             player.add_btag(btag)
             if not await self._check_btag_exists(btag):
                 await message.channel.send("Could not get player data, are you sure you input battle tag correctly (with correct capitalisation)? (e.g. PlayerName#1235)")
@@ -330,7 +272,7 @@ class MyClient(discord.Client):
 
     def _is_pugs(self, channel: discord.VoiceChannel) -> bool:
         return (channel.id in self.all_vc[channel.guild.id])
-        
+
     def _get_pugs_lobby(self, channel: discord.VoiceChannel):
         """Gets PUGs lobby of discord channel"""
         for lobby in self.config[channel.guild.id].lobbies.values():
@@ -361,8 +303,7 @@ class MyClient(discord.Client):
         """Return true if team is one of the team VC corresponding to the lobby lobby"""
         return (team.id in self.invert_lobby_lookup[team.guild.id]
                 and self.invert_lobby_lookup[team.guild.id][team.id] == lobby.id)
-           
-                
+
     # FIXME:
     # 1. If someone join, mark them as "logged in"
     # 2. If someone join the wrong lobby first then join the right lobby, still ask the btag
@@ -406,24 +347,24 @@ class MyClient(discord.Client):
                                        before,
                                        after)):
             # Joining a lobby for the first time
-            await self._on_joining_lobby(mem, before, after)
+            await self._vc_mgr._on_joining_lobby(mem, before, after)
 
         if (not (after.channel and self._is_pugs(after.channel))
             and (before.channel and self._is_pugs(before.channel))):
             # Leaving a pug voice channel
-            await self._on_leaving_lobby(mem, before.channel)
+            await self._vc_mgr._on_leaving_lobby(mem, before.channel)
             return
 
         if (after.channel and before.channel
             and self._is_lobby_team_vc(before.channel, after.channel)):
             # Rejoining lobby from team channel
-            await self._on_back_lobby(mem, before, after)
+            await self._vc_mgr._on_back_lobby(mem, before, after)
             return
 
         if (after.channel and before.channel
             and self._is_lobby_team_vc(after.channel, before.channel)):
             # Joining the team VC related to the lobby we were in
-            await self._on_going_team_vc(mem, before, after)
+            await self._vc_mgr._on_going_team_vc(mem, before, after)
             return
 
         if (after.channel and before.channel
@@ -432,7 +373,7 @@ class MyClient(discord.Client):
             and not self._is_lobby_team_vc(before.channel, after.channel)
             and not self._is_lobby_team_vc(after.channel, before.channel)):
             # Changing lobby
-            await self._on_changing_lobby(mem, before, after)
+            await self._vc_mgr._on_changing_lobby(mem, before, after)
             return
 
     async def on_guild_join(self, guild):
