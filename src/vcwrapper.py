@@ -31,8 +31,9 @@ class OtherVC():
 
 
 def make_vc_wrapper(config: Dict[str, GuildConfig],
-                    vchan: discord.VoiceChannel) -> Union[LobbyVC,
-                                                          TeamVC, OtherVC]:
+                    vchan: Optional[discord.VoiceChannel]) -> Union[LobbyVC,
+                                                                    TeamVC,
+                                                                    OtherVC]:
     """Make a wrapper from "raw" discord VC"""
     if not vchan:
         return OtherVC(vchan)

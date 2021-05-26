@@ -20,7 +20,8 @@ from btag import Btag
 
 from messages import PlayerJoined, PlayerLeft
 import helper
-from vwrapper import LobbyVC, TeamVC, OtherVC make_vc_wrapper, is_same_lobby
+import vcwrapper
+from vcwrapper import TeamVC, OtherVC, make_vc_wrapper, is_same_lobby
 
 # TODO:
 # 3- test
@@ -329,35 +330,35 @@ class MyClient(discord.Client):
         before_wrap = make_vc_wrapper(self.config, before.channel)
         after_wrap = make_vc_wrapper(self.config, after.channel)
 
-        if isinstance(after_wrap, OtherVC) and isinstance(before_wrap OtherVC):
+        if isinstance(after_wrap, OtherVC) and isinstance(before_wrap, OtherVC):
             # We're moving between VC unrelated to PUGS
             return
 
-        if isinstance(after.wrap, LobbyVC) and isinstance(before_wrap OtherVC):
+        if isinstance(after_wrap, vcwrapper.LobbyVC) and isinstance(before_wrap, OtherVC):
             # Joining a lobby for the first time
             await self._vc_mgr._on_joining_lobby(mem, before, after)
 
-        if (isinstance(before_wrap, (LobbyVC, TeamVC))
+        if (isinstance(before_wrap, (vcwrapper.LobbyVC, TeamVC))
             and isinstance(after_wrap, OtherVC)):
             # Leaving a pug voice channel
-            await self._vc_mgr._on_leaving_lobby(mem, before.channel)
+            await self._vc_mgr._on_leaving_lobby(mem, before_wrap.voice_chan)
             return
 
         if (isinstance(before_wrap, TeamVC)
-            and isinstance(after_wrap, LobbyVC)
+            and isinstance(after_wrap, vcwrapper.LobbyVC)
             and is_same_lobby(before_wrap, after_wrap)):
             # Rejoining lobby from team channel
             await self._vc_mgr._on_back_lobby(mem, before, after)
             return
 
-        if (isinstance(before_wrap, LobbyVC)
+        if (isinstance(before_wrap, vcwrapper.LobbyVC)
             and isinstance(after_wrap, TeamVC)
             and is_same_lobby(before_wrap, after_wrap)):
             # Joining the team VC related to the lobby we were in
             await self._vc_mgr._on_going_team_vc(mem, before, after)
             return
 
-        if (isinstance(before_wrap, LobbyVC) and isinstance(after_wrap, LobbyVC)):
+        if (isinstance(before_wrap, vcwrapper.LobbyVC) and isinstance(after_wrap, vcwrapper.LobbyVC)):
             # Changing lobby
             await self._vc_mgr._on_changing_lobby(mem, before, after)
             return
