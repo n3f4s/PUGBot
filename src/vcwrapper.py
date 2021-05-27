@@ -51,10 +51,10 @@ def make_vc_wrapper(config: Dict[str, GuildConfig],
 def is_same_lobby(vchan1: Union[LobbyVC, TeamVC, OtherVC],
                   vchan2: Union[LobbyVC, TeamVC, OtherVC]) -> bool:
     """Return true if both voice channel belong to the same PUG lobby"""
-    if isinstance(vchan1, LobbyVC) or isinstance(vchan2, TeamVC):
+    if isinstance(vchan1, LobbyVC) and isinstance(vchan2, TeamVC):
         return vchan1.lobby_name == vchan2.lobby_name
-    if isinstance(vchan1, TeamVC) or isinstance(vchan2, LobbyVC):
+    if isinstance(vchan1, TeamVC) and isinstance(vchan2, LobbyVC):
         return vchan1.lobby_name == vchan2.lobby_name
-    if isinstance(vchan1, TeamVC) or isinstance(vchan2, TeamVC):
+    if isinstance(vchan1, TeamVC) and isinstance(vchan2, TeamVC):
         return vchan1.lobby_name == vchan2.lobby_name
     return False
