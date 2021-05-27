@@ -20,8 +20,7 @@ from btag import Btag
 
 from messages import PlayerJoined, PlayerLeft
 import helper
-import vcwrapper
-from vcwrapper import TeamVC, OtherVC, make_vc_wrapper, is_same_lobby
+import pug_vc
 
 # TODO:
 # 3- test
@@ -226,8 +225,8 @@ class MyClient(discord.Client):
     # FIXME: don't assume that before and after guild are the same
     # FIXME: check with refactoring where the player can come from
     async def _handle_joining_lobby(self, mem: discord.Member,
-                                    before: discord.VoiceState,
-                                    after: discord.VoiceState):
+                                    before: pug_vc.Other,
+                                    after: pug_vc.Lobby):
         """
         Handle player joining a lobby
         - If come from team VC from same lobby, do nothing
@@ -327,38 +326,38 @@ class MyClient(discord.Client):
         assert isinstance(after.channel, (type(None), discord.VoiceChannel))
         assert isinstance(before.channel, (type(None), discord.VoiceChannel))
 
-        before_wrap = make_vc_wrapper(self.config, before.channel)
-        after_wrap = make_vc_wrapper(self.config, after.channel)
+        before_wrap = pug_vc.make_vc_wrapper(self.config, before.channel)
+        after_wrap = pug_vc.make_vc_wrapper(self.config, after.channel)
 
-        if isinstance(after_wrap, OtherVC) and isinstance(before_wrap, OtherVC):
+        if isinstance(after_wrap, pug_vc.Other) and isinstance(before_wrap, pug_vc.Other):
             # We're moving between VC unrelated to PUGS
             return
 
-        if isinstance(after_wrap, vcwrapper.LobbyVC) and isinstance(before_wrap, OtherVC):
+        if isinstance(after_wrap, pug_vc.Lobby) and isinstance(before_wrap, pug_vc.Other):
             # Joining a lobby for the first time
-            await self._vc_mgr._on_joining_lobby(mem, before, after)
+            await self._vc_mgr._on_joining_lobby(mem, before_wrap, after_wrap)
 
-        if (isinstance(before_wrap, (vcwrapper.LobbyVC, TeamVC))
-            and isinstance(after_wrap, OtherVC)):
+        if (isinstance(before_wrap, (pug_vc.Lobby, pug_vc.Team))
+            and isinstance(after_wrap, pug_vc.Other)):
             # Leaving a pug voice channel
             await self._vc_mgr._on_leaving_lobby(mem, before_wrap.voice_chan)
             return
 
-        if (isinstance(before_wrap, TeamVC)
-            and isinstance(after_wrap, vcwrapper.LobbyVC)
-            and is_same_lobby(before_wrap, after_wrap)):
+        if (isinstance(before_wrap, pug_vc.Team)
+            and isinstance(after_wrap, pug_vc.Lobby)
+            and pug_vc.is_same_lobby(before_wrap, after_wrap)):
             # Rejoining lobby from team channel
             await self._vc_mgr._on_back_lobby(mem, before, after)
             return
 
-        if (isinstance(before_wrap, vcwrapper.LobbyVC)
-            and isinstance(after_wrap, TeamVC)
-            and is_same_lobby(before_wrap, after_wrap)):
+        if (isinstance(before_wrap, pug_vc.Lobby)
+            and isinstance(after_wrap, pug_vc.Team)
+            and pug_vc.is_same_lobby(before_wrap, after_wrap)):
             # Joining the team VC related to the lobby we were in
             await self._vc_mgr._on_going_team_vc(mem, before, after)
             return
 
-        if (isinstance(before_wrap, vcwrapper.LobbyVC) and isinstance(after_wrap, vcwrapper.LobbyVC)):
+        if (isinstance(before_wrap, pug_vc.Lobby) and isinstance(after_wrap, pug_vc.Lobby)):
             # Changing lobby
             await self._vc_mgr._on_changing_lobby(mem, before, after)
             return
