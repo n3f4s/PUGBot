@@ -234,37 +234,30 @@ class MyClient(discord.Client):
         - If has status and is_registered, change lobby and notify
         - If has status and not is_registered, re-send DM
         """
-        assert after.channel
-        assert isinstance(before.channel, (type(None), discord.VoiceChannel))
-        assert isinstance(after.channel, discord.VoiceChannel)
-        before_id = before.channel
-        after_id = after.channel.id
-        guild_id = after.channel.guild.id
+        before_id = before.voice_chan
+        after_id = after.voice_chan.id
+        guild_id = after.voice_chan.guild.id
         self.logger.info("%s moved from %s to %s",
                          mem.display_name,
-                         before.channel.name if before.channel else "No VC",
-                         after.channel.name)
-        if before_id and self._come_from_team_vc(guild_id,
-                                                 before_id.id,
-                                                 after_id):
-            self.logger.debug("%s come from a team lobby", mem.display_name)
-        elif mem.id not in self.players:
+                         before_id.name if before_id else "No VC",
+                         after.voice_chan.name)
+        if mem.id not in self.players:
             self.logger.debug("Sending registration DM to %s",
                               mem.display_name)
-            await self._send_registration_dm(mem, after.channel)
+            await self._send_registration_dm(mem, after.voice_chan)
         else:
             if self.players[mem.id].is_registered:
                 self.logger.info("Moving %s to %s",
                                  mem.display_name,
-                                 after.channel.name)
-                self.players[mem.id].lobby = after.channel
+                                 after.voice_chan.name)
+                self.players[mem.id].lobby = after.voice_chan
                 await self._on_registration(mem, self.players[mem.id].btags,
-                                            after.channel)
+                                            after.voice_chan)
 
             else:
                 self.logger.debug("Sending registration DM to %s",
                                   mem.display_name)
-                self._send_registration_dm(mem, after.channel)
+                self._send_registration_dm(mem, after.voice_chan)
 
 
     def _is_lobby(self, channel: discord.VoiceChannel) -> bool:

@@ -9,6 +9,7 @@ class VoiceChannelManager():
     def __init__(self, client: MyClient):
         self._client = client
 
+    # FIXME: type better
     async def _on_leaving_lobby(self, mem: discord.Member, lobby: discord.VoiceChannel):
         """Called when disconnecting from any VC (team or lobby)"""
         if mem.id in self._client.players:
@@ -21,16 +22,16 @@ class VoiceChannelManager():
             await self._client.ref.put(PlayerLeft("{}".format(mem.id), server_id, lobby_name))
 
     async def _on_joining_lobby(self, mem: discord.Member,
-                                before: discord.VoiceState,
-                                after: discord.VoiceState):
+                                before: pug_vc.Other,
+                                after: pug_vc.Lobby):
         """Called when connecting to a lobby VC (when not connected before)"""
         # FIXME: check if all the cases have been handled
-        assert after.channel
         self._client.logger.info("%s joined the PUG lobby %s",
                                  mem.display_name,
-                                 after.channel.name)
+                                 after.voice_chan.name)
         await self._client._handle_joining_lobby(mem, before, after)
 
+    # FIXME: type better
     async def _on_changing_lobby(self, mem: discord.Member,
                                  before: discord.VoiceState,
                                  after: discord.VoiceState):
@@ -43,6 +44,7 @@ class VoiceChannelManager():
                                  after.channel.name)
         pass
 
+    # FIXME: type better
     async def _on_back_lobby(self, mem: discord.Member,
                              before: discord.VoiceState,
                              after: discord.VoiceState):
@@ -56,6 +58,7 @@ class VoiceChannelManager():
                                  after.channel.name)
         pass
 
+    # FIXME: type better
     async def _on_going_team_vc(self, mem: discord.Member,
                                 before: discord.VoiceState,
                                 after: discord.VoiceState):
