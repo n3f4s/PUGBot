@@ -42,6 +42,18 @@ def _invert_lobby_lookup(config: Dict[int, GuildConfig]) -> Dict[int, Dict[int, 
     return res
 
 
+def _parse_command(message: discord.Message, content: str) -> Tuple[str, List[str]]:
+    args = content.split()
+    return (args[0], args[1:])
+
+
+def _make_btag(btag: str) -> Optional[Btag]:
+    try:
+        return Btag(btag)
+    except:
+        return None
+
+
 class MyClient(discord.Client):
     """Set up and log bot in discord"""
 
@@ -153,6 +165,7 @@ class MyClient(discord.Client):
 
     async def on_reaction_add(self, reaction: discord.Reaction,
                               user: Union[discord.Member, discord.User]):
+        """Triggered when adding reaction on message"""
         if user.bot:
             return
         if reaction.message.id not in self.reaction_callbacks:
@@ -161,13 +174,15 @@ class MyClient(discord.Client):
             del self.reaction_callbacks[reaction.message.id]
 
     def _come_from_team_vc(self, guild: int, before: int, after: int) -> bool:
-        """Test if the player is moving from a team VC to the corresponding lobby VC"""
+        """Test if the player is moving from
+        a team VC to the corresponding lobby VC"""
         for lobby in self.config[guild].lobbies.values():
             if lobby.lobby == after and before in (lobby.team1, lobby.team2):
                 return True
         return False
 
     async def send_registration_dm(self, mem: discord.Member):
+        """Send a DM to a player to ask for their btag"""
         dm_chan = await mem.create_dm()
         await dm_chan.send("Give me your battle tag:")
 
@@ -187,53 +202,18 @@ class MyClient(discord.Client):
                          before_id.name if before_id else "No VC",
                          after.voice_chan.name)
         if not self.players.is_registered(mem.id):
-            await self.players.start_registration(mem, after.voice_chan, OrderedDict())
+            await self.players.start_registration(mem, after.voice_chan,
+                                                  OrderedDict())
         else:
             await self.players.register(mem.id, after.voice_chan)
-
-    def _is_lobby(self, channel: discord.VoiceChannel) -> bool:
-        return (channel.id in [vc.lobby for vc
-                                in self.config[channel.guild.id].lobbies.values()])
-
-    def _is_pugs(self, channel: discord.VoiceChannel) -> bool:
-        return (channel.id in self.all_vc[channel.guild.id])
 
     def _get_pugs_lobby(self, channel: discord.VoiceChannel):
         """Gets PUGs lobby of discord channel"""
         for lobby in self.config[channel.guild.id].lobbies.values():
-            if channel.id in [lobby.lobby, lobby.team1, lobby.team2 ]:
+            if channel.id in [lobby.lobby, lobby.team1, lobby.team2]:
                 return lobby
-        else:
-            return None
+        return None
 
-    def _is_joining_lobby(self, guild_id: str,
-                          before: discord.VoiceState,
-                          after: discord.VoiceState) -> bool:
-        """Return true if the member is connecting for the first time in a VC
-        or change VC from a VC unrelated to pugs"""
-        assert isinstance(before.channel, (type(None), discord.VoiceChannel))
-        assert isinstance(after.channel, discord.VoiceChannel)
-        gid = int(guild_id)
-        vcs = self.all_vc[gid]
-        is_lobby = self._is_lobby(after.channel)
-        if not before.channel and is_lobby:
-            return True
-        else:
-            assert before.channel
-            return before.channel.id not in vcs and is_lobby
-
-    def _is_lobby_team_vc(self,
-                          team: discord.VoiceChannel,
-                          lobby: discord.VoiceChannel) -> bool:
-        """Return true if team is one of the team VC corresponding to the lobby lobby"""
-        return (team.id in self.invert_lobby_lookup[team.guild.id]
-                and self.invert_lobby_lookup[team.guild.id][team.id] == lobby.id)
-
-    # FIXME:
-    # 1. If someone join, mark them as "logged in"
-    # 2. If someone join the wrong lobby first then join the right lobby, still ask the btag
-    # 3. If someone isn't registered, mark them as needed to be registered then do the registration from DM
-    # 4. If someone is registered, call the function to notify the server
     async def on_voice_state_update(self, mem: discord.Member,
                                     before: discord.VoiceState,
                                     after: discord.VoiceState):
@@ -253,41 +233,40 @@ class MyClient(discord.Client):
         before_wrap = pug_vc.make_vc_wrapper(self.config, before.channel)
         after_wrap = pug_vc.make_vc_wrapper(self.config, after.channel)
 
-        if isinstance(after_wrap, pug_vc.Other) and isinstance(before_wrap, pug_vc.Other):
+        if (isinstance(after_wrap, pug_vc.Other)
+            and isinstance(before_wrap, pug_vc.Other)):
             # We're moving between VC unrelated to PUGS
             return
 
-        if isinstance(after_wrap, pug_vc.Lobby) and isinstance(before_wrap, pug_vc.Other):
+        if (isinstance(after_wrap, pug_vc.Lobby)
+            and isinstance(before_wrap, pug_vc.Other)):
             # Joining a lobby for the first time
             await self._vc_mgr._on_joining_lobby(mem, before_wrap, after_wrap)
 
-        if (isinstance(before_wrap, (pug_vc.Lobby, pug_vc.Team))
+        elif (isinstance(before_wrap, (pug_vc.Lobby, pug_vc.Team))
             and isinstance(after_wrap, pug_vc.Other)):
             # Leaving a pug voice channel
             await self._vc_mgr._on_leaving_lobby(mem, before_wrap)
-            return
 
-        if (isinstance(before_wrap, pug_vc.Team)
+        elif (isinstance(before_wrap, pug_vc.Team)
             and isinstance(after_wrap, pug_vc.Lobby)
             and pug_vc.is_same_lobby(before_wrap, after_wrap)):
             # Rejoining lobby from team channel
             await self._vc_mgr._on_back_lobby(mem, before_wrap, after_wrap)
-            return
 
-        if (isinstance(before_wrap, pug_vc.Lobby)
+        elif (isinstance(before_wrap, pug_vc.Lobby)
             and isinstance(after_wrap, pug_vc.Team)
             and pug_vc.is_same_lobby(before_wrap, after_wrap)):
             # Joining the team VC related to the lobby we were in
             await self._vc_mgr._on_going_team_vc(mem, before_wrap, after_wrap)
-            return
 
-        if (isinstance(before_wrap, (pug_vc.Lobby, pug_vc.Team))
+        elif (isinstance(before_wrap, (pug_vc.Lobby, pug_vc.Team))
             and isinstance(after_wrap, (pug_vc.Lobby, pug_vc.Team))):
             # Changing lobby
             await self._vc_mgr._on_changing_lobby(mem, before_wrap, after_wrap)
-            return
 
     async def on_guild_join(self, guild):
+        """Triggered when adding the bot to a guild"""
         self.config[guild.id] = GuildConfig(guild.id, {}, "%")
 
     async def _check_btag_exists(self, btag: Btag):
