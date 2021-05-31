@@ -241,29 +241,29 @@ class MyClient(discord.Client):
         if (isinstance(after_wrap, pug_vc.Lobby)
             and isinstance(before_wrap, pug_vc.Other)):
             # Joining a lobby for the first time
-            await self._vc_mgr._on_joining_lobby(mem, before_wrap, after_wrap)
+            await self._vc_mgr.on_joining_lobby(mem, before_wrap, after_wrap)
 
         elif (isinstance(before_wrap, (pug_vc.Lobby, pug_vc.Team))
             and isinstance(after_wrap, pug_vc.Other)):
             # Leaving a pug voice channel
-            await self._vc_mgr._on_leaving_lobby(mem, before_wrap)
+            await self._vc_mgr.on_leaving_lobby(mem, before_wrap)
 
         elif (isinstance(before_wrap, pug_vc.Team)
             and isinstance(after_wrap, pug_vc.Lobby)
             and pug_vc.is_same_lobby(before_wrap, after_wrap)):
             # Rejoining lobby from team channel
-            await self._vc_mgr._on_back_lobby(mem, before_wrap, after_wrap)
+            await self._vc_mgr.on_back_lobby(mem, before_wrap, after_wrap)
 
         elif (isinstance(before_wrap, pug_vc.Lobby)
             and isinstance(after_wrap, pug_vc.Team)
             and pug_vc.is_same_lobby(before_wrap, after_wrap)):
             # Joining the team VC related to the lobby we were in
-            await self._vc_mgr._on_going_team_vc(mem, before_wrap, after_wrap)
+            await self._vc_mgr.on_going_team_vc(mem, before_wrap, after_wrap)
 
         elif (isinstance(before_wrap, (pug_vc.Lobby, pug_vc.Team))
             and isinstance(after_wrap, (pug_vc.Lobby, pug_vc.Team))):
             # Changing lobby
-            await self._vc_mgr._on_changing_lobby(mem, before_wrap, after_wrap)
+            await self._vc_mgr.on_changing_lobby(mem, before_wrap, after_wrap)
 
     async def on_guild_join(self, guild):
         """Triggered when adding the bot to a guild"""

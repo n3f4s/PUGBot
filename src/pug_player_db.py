@@ -26,6 +26,7 @@ class PUGPlayerStatus:
 
 
 class PUGPlayerDB:
+    """Helper class facilitating management of list of PUG players"""
     def __init__(self, client: MyClient):
         self._client = client
         self._players: dict[int, PUGPlayerStatus] = {}
