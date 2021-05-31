@@ -5,7 +5,7 @@ and what will be imported to run it
 
 import sys
 import logging
-from typing import Dict, List, Set, Union, Tuple, Callable, Awaitable
+from typing import Dict, List, Set, Union, Tuple, Callable, Awaitable, Optional
 from collections import OrderedDict
 
 import urllib.request
@@ -31,21 +31,6 @@ import pug_vc
 # 8- Actual DB
 
 
-
-class PUGPlayerStatus:
-    """ Group info regarding a player status when they're in a VC"""
-    def __init__(self, member: discord.Member,
-                 lobby: discord.VoiceChannel,
-                 btags: OrderedDict[Btag, bool]):
-        self.member = member
-        self.lobby: Union[discord.VoiceChannel, None] = lobby
-        self.btags = btags
-        self.is_registered = False
-
-    def add_btag(self, btag: Btag):
-        self.btags[btag] = True
-
-
 def _invert_lobby_lookup(config: Dict[int, GuildConfig]) -> Dict[int, Dict[int, int]]:
     res = {}
     for (gid, cfg) in config.items():
@@ -64,6 +49,7 @@ class MyClient(discord.Client):
         from cmd_config import CmdConfigBot, CmdConfigPrint
         from commands import Command
         from voice_channel_manager import VoiceChannelManager
+        from pug_player_db import PUGPlayerDB
         super().__init__()
         self._vc_mgr = VoiceChannelManager(self)
         self.logger = logging.getLogger("Bot")
@@ -79,14 +65,16 @@ class MyClient(discord.Client):
             CmdConfigPrint.name(): CmdConfigPrint(self)
         }
         self.reaction_callbacks: Dict[int,
-                                 Callable[[discord.Reaction,
-                                           Union[discord.Member, discord.User]],
-                                          Awaitable[bool]]] = {}
+                                      Callable[[discord.Reaction,
+                                                Union[discord.Member,
+                                                      discord.User]],
+                                               Awaitable[bool]]] = {}
 
-        self.players: Dict[int, PUGPlayerStatus] = {}
+        self.players = PUGPlayerDB(self)
 
     @property
     def all_vc(self):
+        """Return a list of all PUG related voice channels"""
         return {
             guild: [lobby for lobbyVC in cfg.lobbies.values()
                     for lobby in [lobbyVC.lobby, lobbyVC.team1, lobbyVC.team2]]
@@ -95,27 +83,8 @@ class MyClient(discord.Client):
 
     @property
     def invert_lobby_lookup(self):
+        """Return a mapping of lobby corresponding to a team VC"""
         return _invert_lobby_lookup(self.config)
-
-    async def _on_registration(self, player: discord.Member, tags: OrderedDict[Btag, bool],
-                               lobby: discord.VoiceChannel):
-        """
-        Function handling a player joining a VC for the first time.
-        Called either after joining a VC
-        if the player is already registered in the DB
-        or when they give their btag to the bot
-        """
-        self.logger.info("%s joined lobby %s with btags %s",
-                         player.display_name,
-                         lobby.name,
-                         ", ".join([e.to_string() for e in tags]))
-        server_id = lobby.guild.id
-        lobby_name = self._get_pugs_lobby(lobby).name
-        await self.ref.put(PlayerJoined("{}".format(player.id),
-                                        tags,
-                                        server_id,
-                                        lobby_name,
-                                        nick=player.display_name))
 
     async def on_ready(self):
         """Execute when client is ready"""
@@ -128,6 +97,7 @@ class MyClient(discord.Client):
                 self.config[guild.id] = GuildConfig(guild.id, {}, "%")
         helper.save_config(self.config)
 
+
     async def on_dm(self, message):
         """
         When receiving a DM:
@@ -138,49 +108,33 @@ class MyClient(discord.Client):
            - If the player isn't registered the notify the backend
         """
         self.logger.debug('Got DM from %s', message.author.display_name)
-        if message.author.id not in self.players:
+        player = self.players.get(message.author.id)
+        btag = _make_btag(message.content)
+        if not player:
             self.logger.debug('%s is not in any lobby',
                               message.author.display_name)
             await message.channel.send("You aren't in any lobby, join a lobby")
+        elif not btag:
+            await message.channel.send("Battle tag not understood, please resend it")
+        elif not await self._check_btag_exists(btag):
+            await message.channel.send("Could not get player data, are you sure you input battle tag correctly (with correct capitalisation)? (e.g. PlayerName#1235)")
+        elif not player.is_registered:
+            await self.players.register(message.author.id)
+            auth = message.author.display_name
+            tags = [e.to_string() for e
+                    in self.players.get(message.author.id).btags]
+            mess = "{} is registered with {}".format(auth, ", ".join(tags))
+            await message.channel.send(mess)
         else:
-            player = self.players[message.author.id]
-            self.logger.debug('Saving btag %s for %s',
-                              message.content,
+            self.logger.debug('Player %s already registered in the backend',
                               message.author.display_name)
-            try:
-                btag = Btag(message.content)
-            except:
-                await message.channel.send("Battle tag not understood, please resend it")
-                return
-            player.add_btag(btag)
-            if not await self._check_btag_exists(btag):
-                await message.channel.send("Could not get player data, are you sure you input battle tag correctly (with correct capitalisation)? (e.g. PlayerName#1235)")
-            else:
-                # FIXME: when the server can handle multiple btags, notify it when adding btag
-                if not player.is_registered:
-                    self.logger.debug('Notifying backend of new player %s joining VC for the first time',
-                                      message.author.display_name)
-                    player.is_registered = True
-                    await self._on_registration(player.member,
-                                                player.btags,
-                                                player.lobby)
-                    await message.channel.send("{} is registered with {}"
-                                               .format(message.author.display_name,
-                                                       ", ".join([e.to_string() for e in self.players[message.author.id].btags])))
-                else:
-                    self.logger.debug('Player %s already registered in the backend',
-                                      message.author.display_name)
-
-
-    def _parse_command(self, message: discord.Message, content: str) -> Tuple[str, List[str]]:
-        args = content.split()
-        return (args[0], args[1:])
 
     async def _on_command(self, message: discord.Message):
         content = message.content[1:]
-        command, args = self._parse_command(message, content)
+        command, args = _parse_command(message, content)
         if command == "help":
-            await message.channel.send("Command list: {}".format(", ".join(self.commands.keys())))
+            await message.channel.send("Command list: {}".format(
+                ", ".join(self.commands.keys())))
         elif command in self.commands:
             await self.commands[command].execute(message, args)
         else:
@@ -201,7 +155,7 @@ class MyClient(discord.Client):
                               user: Union[discord.Member, discord.User]):
         if user.bot:
             return
-        if not reaction.message.id in self.reaction_callbacks:
+        if reaction.message.id not in self.reaction_callbacks:
             return
         if await self.reaction_callbacks[reaction.message.id](reaction, user):
             del self.reaction_callbacks[reaction.message.id]
@@ -213,17 +167,10 @@ class MyClient(discord.Client):
                 return True
         return False
 
-    async def _send_registration_dm(self, mem: discord.Member,
-                                    after: discord.VoiceChannel):
-        self.players[mem.id] = PUGPlayerStatus(mem, after, OrderedDict())
-        self.logger.info('Registering %s for lobby %s',
-                         mem.name,
-                         after.name)
+    async def send_registration_dm(self, mem: discord.Member):
         dm_chan = await mem.create_dm()
         await dm_chan.send("Give me your battle tag:")
 
-    # FIXME: don't assume that before and after guild are the same
-    # FIXME: check with refactoring where the player can come from
     async def _handle_joining_lobby(self, mem: discord.Member,
                                     before: pug_vc.Other,
                                     after: pug_vc.Lobby):
@@ -235,30 +182,14 @@ class MyClient(discord.Client):
         - If has status and not is_registered, re-send DM
         """
         before_id = before.voice_chan
-        after_id = after.voice_chan.id
-        guild_id = after.voice_chan.guild.id
         self.logger.info("%s moved from %s to %s",
                          mem.display_name,
                          before_id.name if before_id else "No VC",
                          after.voice_chan.name)
-        if mem.id not in self.players:
-            self.logger.debug("Sending registration DM to %s",
-                              mem.display_name)
-            await self._send_registration_dm(mem, after.voice_chan)
+        if not self.players.is_registered(mem.id):
+            await self.players.start_registration(mem, after.voice_chan, OrderedDict())
         else:
-            if self.players[mem.id].is_registered:
-                self.logger.info("Moving %s to %s",
-                                 mem.display_name,
-                                 after.voice_chan.name)
-                self.players[mem.id].lobby = after.voice_chan
-                await self._on_registration(mem, self.players[mem.id].btags,
-                                            after.voice_chan)
-
-            else:
-                self.logger.debug("Sending registration DM to %s",
-                                  mem.display_name)
-                self._send_registration_dm(mem, after.voice_chan)
-
+            await self.players.register(mem.id, after.voice_chan)
 
     def _is_lobby(self, channel: discord.VoiceChannel) -> bool:
         return (channel.id in [vc.lobby for vc
