@@ -42,7 +42,16 @@ class VoiceChannelManager():
                                  mem.display_name,
                                  before.voice_chan.name,
                                  after.voice_chan.name)
-        self._client.logger.critical("Moving between lobbies not implemented")
+        if isinstance(after, pug_vc.Lobby):
+            self._client.players.register(mem.id, after.voice_chan)
+        else:
+            lobby_id = self._client.invert_lobby_lookup[after.voice_chan.guild.id][after.voice_chan.id]
+            lobby = None
+            for chan in after.voice_chan.guild.voice_channels:
+                if chan.id == lobby_id:
+                    lobby = chan
+            assert(lobby)
+            self._client.players.register(mem.id, lobby)
 
     async def on_back_lobby(self, mem: discord.Member,
                             before: pug_vc.Team,
