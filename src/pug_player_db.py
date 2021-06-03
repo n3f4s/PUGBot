@@ -11,18 +11,20 @@ from messages import PlayerJoined
 class PUGPlayerStatus:
     """ Group info regarding a player status when they're in a VC"""
     def __init__(self, member: discord.Member,
-                 lobby: discord.VoiceChannel,
+                 channel: discord.VoiceChannel,
                  btags: OrderedDict[Btag, bool]):
         self.member = member
-        self.lobby: Union[discord.VoiceChannel, None] = lobby
+        self.channel: Union[discord.VoiceChannel, None] = channel
         self.btags = btags
         self.is_registered = False
 
     def add_btag(self, btag: Btag):
+        if self.btags.get(btag):
+            del self.btags[btag]
         self.btags[btag] = True
 
-    def leave_lobby(self):
-        self.lobby = None
+    def leave_channel(self):
+        self.channel = None
 
 
 class PUGPlayerDB:
@@ -45,14 +47,14 @@ class PUGPlayerDB:
     def is_in_lobby(self, did: int) -> bool:
         player = self.get(did)
         if player:
-            if player.lobby:
+            if player.channel:
                 return player.is_registered
         return False
 
     async def start_registration(self, member: discord.Member,
-                                 lobby: discord.VoiceChannel,
+                                 channel: discord.VoiceChannel,
                                  btags: OrderedDict[Btag, bool]):
-        self._players[member.id] = PUGPlayerStatus(member, lobby, btags)
+        self._players[member.id] = PUGPlayerStatus(member, channel, btags)
         await self._client.send_registration_dm(member)
 
     async def add_btag(self, did: int, btag: Btag):
@@ -60,16 +62,15 @@ class PUGPlayerDB:
         assert(player)
         player.add_btag(btag)
 
-
     async def register(self, did: int,
-                       lobby: Optional[discord.VoiceChannel]=None):
+                       channel: Optional[discord.VoiceChannel]=None):
         player = self.get(did)
         assert(player)
-        if lobby:
-            player.lobby = lobby
-        assert(player.lobby)
-        server_id = player.lobby.guild.id
-        lobby_name = self._client._get_pugs_lobby(player.lobby).name
+        if channel:
+            player.channel = channel
+        assert(player.channel)
+        server_id = player.channel.guild.id
+        lobby_name = self._client._get_pugs_lobby(player.channel).name
         await self._client.ref.put(PlayerJoined("{}".format(player.member.id),
                                                 player.btags,
                                                 server_id,

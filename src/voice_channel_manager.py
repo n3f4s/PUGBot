@@ -15,7 +15,7 @@ class VoiceChannelManager():
         player = self._client.players.get(mem.id)
         if player:
             self._client.logger.info("%s left a PUG lobby", mem.display_name)
-            player.lobby = None
+            player.channel = None
             self._client.logger.debug("Notifying backend of %s departure",
                                       mem.display_name)
 
@@ -43,34 +43,22 @@ class VoiceChannelManager():
                                  before.voice_chan.name,
                                  after.voice_chan.name)
 
-        if isinstance(before, pug_vc.Lobby):
-            server_id = before.voice_chan.guild.id
-            lobby_name = self._client._get_pugs_lobby(before.voice_chan).name
-            await self._client.ref.put(PlayerLeft("{}".format(mem.id),
-                                                  server_id, lobby_name))
-        else:
-            lobby_id = self._client.invert_lobby_lookup[before.voice_chan.guild.id][before.voice_chan.id]
-            lobby = None
-            for chan in before.voice_chan.guild.voice_channels:
-                if chan.id == lobby_id:
-                    lobby = chan
-            assert(lobby)
+        server_id = before.voice_chan.guild.id
+        lobby_name = self._client._get_pugs_lobby(before.voice_chan).name
+        await self._client.ref.put(PlayerLeft("{}".format(mem.id),
+                                              server_id, lobby_name))
 
-            server_id = before.voice_chan.guild.id
-            lobby_name = self._client._get_pugs_lobby(before.voice_chan).name
-            await self._client.ref.put(PlayerLeft("{}".format(mem.id),
-                                                  server_id, lobby_name))
 
         if isinstance(after, pug_vc.Lobby):
             await self._client.players.register(mem.id, after.voice_chan)
         else:
-            lobby_id = self._client.invert_lobby_lookup[after.voice_chan.guild.id][after.voice_chan.id]
-            lobby = None
+            channel_id = self._client.invert_lobby_lookup[after.voice_chan.guild.id][after.voice_chan.id]
+            channel = None
             for chan in after.voice_chan.guild.voice_channels:
-                if chan.id == lobby_id:
-                    lobby = chan
-            assert(lobby)
-            await self._client.players.register(mem.id, lobby)
+                if chan.id == channel_id:
+                    channel = chan
+            assert(channel)
+            await self._client.players.register(mem.id, channel)
 
     async def on_back_lobby(self, mem: discord.Member,
                             before: pug_vc.Team,

@@ -139,8 +139,11 @@ class MyClient(discord.Client):
             mess = "{} is registered with {}".format(auth, ", ".join(tags))
             await message.channel.send(mess)
         else:
+            await self.players.add_btag(message.author.id, btag)
             self.logger.debug('Player %s already registered in the backend',
                               message.author.display_name)
+            mess = "Your battletag has been updated to {}".format(btag.to_string())
+            await message.channel.send(mess)
 
     async def _on_command(self, message: discord.Message):
         content = message.content[1:]
