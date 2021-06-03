@@ -138,24 +138,21 @@ async def read_queue(queue: asyncio.Queue):
     while True:
         message = await queue.get()
         if isinstance(message, messages.PlayerJoined):
-            #await lobby.playerJoin(message.player, list(message.btags.keys())[-1].to_string(), name=message.nick)
-            
             server_lobbies = lobbies.get(message.server_id, None)
             if server_lobbies is None:
                 lobbies[message.server_id] = {}
                 server_lobbies = lobbies[message.server_id]
-            lob = server_lobbies.get(message.lobby_name, None)
-            if lob is None:
-                lob = GameLobby()
-                await lob.lobbySetUp()
-                lobbies[message.server_id][message.lobby_name] = lob
-            await lob.playerJoin(message.player, list(message.btags.keys())[-1].to_string(), name=message.nick)
+            lobby = server_lobbies.get(message.lobby_name, None)
+            if lobby is None:
+                lobby = GameLobby()
+                await lobby.lobbySetUp()
+                lobbies[message.server_id][message.lobby_name] = lobby
+            await lobby.playerJoin(message.player, list(message.btags.keys())[-1].to_string(), name=message.nick)
             
         if isinstance(message, messages.PlayerLeft):
-           #lobby.playerLeave(message.player)
-           
-           lob = get_lobby(message.server_id, message.lobby_name)
-           lob.playerLeave(message.player)
+           lobby = get_lobby(message.server_id, message.lobby_name)
+           if server_lobbies is not None:
+                lobby.playerLeave(message.player)
            
 
 async def run(port, debug=False):

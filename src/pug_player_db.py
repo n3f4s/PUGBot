@@ -55,6 +55,12 @@ class PUGPlayerDB:
         self._players[member.id] = PUGPlayerStatus(member, lobby, btags)
         await self._client.send_registration_dm(member)
 
+    async def add_btag(self, did: int, btag: Btag):
+        player = self.get(did)
+        assert(player)
+        player.add_btag(btag)
+
+
     async def register(self, did: int,
                        lobby: Optional[discord.VoiceChannel]=None):
         player = self.get(did)

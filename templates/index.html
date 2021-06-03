@@ -446,8 +446,8 @@
     const bus = new Vue({
       data: {
         clientId: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
-        busSource: "/lobbyupdates",
-        busTarget: "/lobbyupdates"
+        busSource: "lobbyupdates",
+        busTarget: "lobbyupdates"
       },
       methods: {
         send(eventName, event) {
@@ -981,7 +981,7 @@
 
 <body>
   <div>
-    <div class = "row"><img class="col m1 push-m1" src="assets/icon.jpg" /></div>
+    <div class = "row"><img class="col m1 push-m1" src="/assets/icon.jpg" /></div>
     
     <div class="row">
       <div id="app" class="col l12">

@@ -131,6 +131,7 @@ class MyClient(discord.Client):
         elif not await self._check_btag_exists(btag):
             await message.channel.send("Could not get player data, are you sure you input battle tag correctly (with correct capitalisation)? (e.g. PlayerName#1235)")
         elif not player.is_registered:
+            await self.players.add_btag(message.author.id, btag)
             await self.players.register(message.author.id)
             auth = message.author.display_name
             tags = [e.to_string() for e
