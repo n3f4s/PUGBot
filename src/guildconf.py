@@ -1,5 +1,5 @@
 """ Represent the config for a discord server (VC, ...) """
-from typing import List
+from typing import List, Dict
 
 
 class LobbyVC:
@@ -11,7 +11,7 @@ class LobbyVC:
 
 
 class GuildConfig:
-    def __init__(self, guild: int, lobbies: List[LobbyVC], prefix: str):
+    def __init__(self, guild: int, lobbies: Dict[str, LobbyVC], prefix: str):
         self.guild_id = guild
         self.lobbies = lobbies
         self.prefix = prefix

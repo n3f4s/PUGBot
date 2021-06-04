@@ -17,10 +17,13 @@ class Btag:
     def for_api(self):
         """Return the btag formatted for the API"""
         return "{}-{}".format(self.name, self.discriminator)
-        
+
     def __str__(self):
         return self.to_string()
         
+    def __hash__(self):
+        return hash(str(self))
+
     def __eq__(self, other):
         if isinstance(other, Btag):
             return self.to_string() == other.to_string()
