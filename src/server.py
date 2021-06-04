@@ -17,7 +17,7 @@ from quart import send_from_directory, Response, request, redirect
 
 app = Quart(__name__)
 lobby_ = GameLobby()
-lobbies: Dict[ Dict[ GameLobby ] ] =  {}
+lobbies: Dict[ int, Dict[ str, GameLobby ] ] =  {}
 templateLoader = jinja2.Environment(
     loader=jinja2.FileSystemLoader('templates'),
     autoescape=jinja2.select_autoescape(['html', 'xml']),
