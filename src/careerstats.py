@@ -33,10 +33,12 @@ class CareerProfile:
             d = {}
         
         mostPlayed = { "tank": [], "damage": [], "support": [] }
-        for hero, hdata in d.get("competitiveStats", {}).get("topHeroes", {}).items():
-            h = { "hero": hero, "timePlayed": hdata["timePlayed"]}
-            for r in self._heroes.keys():
-                if hero in self._heroes[r]: mostPlayed[r].append(h)
+        stats = d.get("competitiveStats", {}).get("topHeroes", {})
+        if stats:
+            for hero, hdata in stats.items():
+                h = { "hero": hero, "timePlayed": hdata["timePlayed"]}
+                for r in self._heroes.keys():
+                    if hero in self._heroes[r]: mostPlayed[r].append(h)
         
         for r in self._heroes.keys():
             profile["overview"][r] = {
