@@ -8,7 +8,7 @@ import bot
 async def main():
     queue = asyncio.Queue()
     port = os.environ.get('SERVER_PORT', 63083)
-    port = os.environ.get('SERVER_HOST', '0.0.0.0')
+    host = os.environ.get('SERVER_HOST', '0.0.0.0')
     if os.environ.get('SERVER_ONLY'):
         await asyncio.gather(
             server.main(queue, host, port=port)
