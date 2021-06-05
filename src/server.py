@@ -155,15 +155,15 @@ async def read_queue(queue: asyncio.Queue):
                 lobby.playerLeave(message.player)
            
 
-async def run(port, debug=False):
-    await app.run_task(port=port, debug=debug)
+async def run(port, host, debug=False):
+    await app.run_task(host=host, port=port, debug=debug)
 
-async def main(queue: asyncio.Queue, port=8080, debug=False):
+async def main(queue: asyncio.Queue, host, port=8080, debug=False):
     lobbies[0] = {}
     lobbies[0]["test"] = lobby_
     await lobby_.lobbySetUp(debug=True)
 
     await asyncio.gather(
-        run(port, debug=debug),
+        run(port, host, debug=debug),
         read_queue(queue)
     )
