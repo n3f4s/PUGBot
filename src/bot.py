@@ -187,8 +187,12 @@ class MyClient(discord.Client):
 
     async def send_registration_dm(self, mem: discord.Member):
         """Send a DM to a player to ask for their btag"""
-        dm_chan = await mem.create_dm()
-        await dm_chan.send("Give me your battle tag:")
+        try:
+            dm_chan = await mem.create_dm()
+            await dm_chan.send("Give me your battle tag:")
+        except Exception as e:
+            self.logger.error("Couldn't create DM for player %s", mem.display_name)
+            raise e
 
     async def _handle_joining_lobby(self, mem: discord.Member,
                                     before: pug_vc.Other,
