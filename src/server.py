@@ -152,7 +152,7 @@ async def read_queue(queue: asyncio.Queue):
             
         if isinstance(message, messages.PlayerLeft):
            lobby = get_lobby(message.server_id, message.lobby_name)
-           if server_lobbies is not None:
+           if lobby is not None:
                 assert(lobby)
                 lobby.playerLeave(message.player)
            
