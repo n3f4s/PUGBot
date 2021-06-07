@@ -104,7 +104,7 @@ class MyClient(discord.Client):
         for guild in self.guilds:
             if guild.id not in self.config:
                 self.logger.debug('Guild %s has no config, generating default', guild.name)
-                self.logger.debug('config keys: %s', ", ".join(self.config.keys()))
+                self.logger.debug('config keys: %d', ", ".join(self.config.keys()))
                 self.logger.debug('guild id: %s', guild.id)
                 self.config[guild.id] = GuildConfig(guild.id, {}, "%")
         helper.save_config(self.config)
@@ -164,6 +164,8 @@ class MyClient(discord.Client):
             await self.on_dm(message)
         if isinstance(message.channel, discord.TextChannel):
             guild = message.guild.id
+            if guild not in self.config:
+                return
             if message.content[0] == self.config[guild].prefix:
                 await self._on_command(message)
 
