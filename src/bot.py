@@ -106,7 +106,7 @@ class MyClient(discord.Client):
         for guild in self.guilds:
             if guild.id not in self.config:
                 self.logger.debug('Guild %s has no config, generating default', guild.name)
-                self.logger.debug('config keys: %d', ", ".join(self.config.keys()))
+                self.logger.debug('config keys: %s', ", ".join([str(k) for k in self.config.keys()]))
                 self.logger.debug('guild id: %s', guild.id)
                 self.config[guild.id] = GuildConfig(guild.id, {}, "%")
         helper.save_config(self.config)
@@ -177,7 +177,8 @@ class MyClient(discord.Client):
             author = msg.author
             try:
                 btag = Btag(content)
-                if self._check_btag_exists(btag):
+                if await self._check_btag_exists(btag):
+                    self.logger.debug("Adding btag %s", btag.to_string())
                     await self.players.add_btag(did, btag)
                     await self.players.register(did)
                 else:
