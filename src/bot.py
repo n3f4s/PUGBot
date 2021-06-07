@@ -149,7 +149,7 @@ class MyClient(discord.Client):
             guild = message.guild.id
             if guild not in self.config:
                 return
-            if message.content[0] == self.config[guild].prefix:
+            if len(message > 0) and message.content[0] == self.config[guild].prefix:
                 await self._on_command(message)
 
     async def on_reaction_add(self, reaction: discord.Reaction,
