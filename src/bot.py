@@ -76,6 +76,8 @@ class MyClient(discord.Client):
             CmdConfigBot.name(): CmdConfigBot(self),
             CmdConfigPrint.name(): CmdConfigPrint(self)
         }
+        self.dm_callbacks: Dict[int,
+                                Callable[[discord.Message], Awaitable[bool]]] = {}
         self.reaction_callbacks: Dict[int,
                                       Callable[[discord.Reaction,
                                                 Union[discord.Member,
@@ -120,30 +122,11 @@ class MyClient(discord.Client):
            - If the player isn't registered the notify the backend
         """
         self.logger.debug('Got DM from %s', message.author.display_name)
-        player = self.players.get(message.author.id)
-        btag = _make_btag(message.content)
-        if not player:
-            self.logger.debug('%s is not in any lobby',
-                              message.author.display_name)
-            await message.channel.send("You aren't in any lobby, join a lobby")
-        elif not btag:
-            await message.channel.send("Battle tag not understood, please resend it")
-        elif not await self._check_btag_exists(btag):
-            await message.channel.send("Could not get player data, are you sure you input battle tag correctly (with correct capitalisation)? (e.g. PlayerName#1235)")
-        elif not player.is_registered:
-            await self.players.add_btag(message.author.id, btag)
-            await self.players.register(message.author.id)
-            auth = message.author.display_name
-            tags = [e.to_string() for e
-                    in self.players.get(message.author.id).btags]
-            mess = "{} is registered with {}".format(auth, ", ".join(tags))
-            await message.channel.send(mess)
-        else:
-            await self.players.add_btag(message.author.id, btag)
-            self.logger.debug('Player %s already registered in the backend',
-                              message.author.display_name)
-            mess = "Your battletag has been updated to {}".format(btag.to_string())
-            await message.channel.send(mess)
+        author = message.author.id
+        if author in self.dm_callbacks:
+            res = await self.dm_callbacks[author](message)
+            if res:
+                del self.dm_callbacks[author]
 
     async def _on_command(self, message: discord.Message):
         content = message.content[1:]
@@ -189,7 +172,25 @@ class MyClient(discord.Client):
 
     async def send_registration_dm(self, mem: discord.Member):
         """Send a DM to a player to ask for their btag"""
+        async def on_dm_callback(did: int, msg: discord.Message):
+            content = msg.content
+            author = msg.author
+            try:
+                btag = Btag(content)
+                if self._check_btag_exists(btag):
+                    await self.players.add_btag(did, btag)
+                    await self.players.register(did)
+                else:
+                    dm_chan = await author.create_dm()
+                    await dm_chan.send("Unable to find btag, check spelling and case")
+                    return False
+            except:
+                await dm_chan.send("Unable to understand btag, check spelling and case. Make sure to only write btag")
+                dm_chan = await mem.create_dm()
+                return False
+            return True
         try:
+            self.dm_callbacks[mem.id] = lambda msg: on_dm_callback(mem.id, msg)
             dm_chan = await mem.create_dm()
             await dm_chan.send("Give me your battle tag:")
         except Exception as e:
