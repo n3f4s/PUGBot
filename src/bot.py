@@ -175,7 +175,7 @@ class MyClient(discord.Client):
         url = "https://pugs.chocolytech.info/{}/{}".format(chan.guild.id,
                                                            lobby)
         dm_chan = await mem.create_dm()
-        await dm_chan.send("lobby URL: {}".format(url))
+        await dm_chan.send("Here is the URL for {}: {}".format(lobby, url))
 
     async def send_registration_dm(self, mem: discord.Member):
         """Send a DM to a player to ask for their btag"""
@@ -191,17 +191,18 @@ class MyClient(discord.Client):
                     await self.players.register(did)
                 else:
                     dm_chan = await author.create_dm()
-                    await dm_chan.send("Unable to find btag, check spelling and case")
+                    await dm_chan.send("I am unable to find your battle tag. Verify the spelling and the case.")
                     return False
             except:
-                await dm_chan.send("Unable to understand btag, check spelling and case. Make sure to only write btag")
+                await dm_chan.send("I am unable to find a battle tag in your message. Please make sure that the tag is well formatted and that the message contains only the tag (no whitespace, ...)")
                 dm_chan = await mem.create_dm()
                 return False
+            await dm_chan.send("I've received your battletag (`{}`). I will send you shortly the URL for the picking interface for your lobby".format(content))
             return True
         try:
             self.dm_callbacks[mem.id] = lambda msg: on_dm_callback(mem.id, msg)
             dm_chan = await mem.create_dm()
-            await dm_chan.send("Give me your battle tag:")
+            await dm_chan.send("Hi, I'm pugbot. I'm here to simplify the picking process during Pick Up Games by providing and interface with player information. In order to work I need to be able to access your career profile. Write your battle tag (and only your battletag) here so that can find your career profile.")
         except Exception as e:
             self.logger.error("Couldn't create DM for player %s", mem.display_name)
             raise e
