@@ -3,6 +3,8 @@ Define class handling player database for the bot
 """
 
 import discord
+import os
+import json
 from typing import OrderedDict, Union, Optional
 from btag import Btag
 from bot import MyClient
@@ -26,17 +28,56 @@ class PUGPlayerStatus:
     def leave_channel(self):
         self.channel = None
 
+    def to_json(self):
+        tags = [t.full() for t in self.btags.keys()]
+        mem = self.member.id
+        channel = self.channel.id if self.channel else None
+        return json.dumps({
+            "btag": tags,
+            "guild": self.member.guild.id,
+            "member": mem,
+            "channel": channel,
+            "is_registered": self.is_registered
+        })
+
 
 class PUGPlayerDB:
     """Helper class facilitating management of list of PUG players"""
     def __init__(self, client: MyClient):
+        self._save_path = os.environ.get('DATABASE_ROOT', ".") + "/pugplayerdb.json"
         self._client = client
         self._players: dict[int, PUGPlayerStatus] = {}
+
+    @classmethod
+    async def make(cls, client: MyClient):
+        res = PUGPlayerDB(client)
+        res._load()
+        return res
 
     def get(self, did: int) -> Optional[PUGPlayerStatus]:
         if did in self._players:
             return self._players[did]
         return None
+
+    def _save(self):
+        with open(self._save_path, "w") as file:
+            players = json.dumps({(d, p.to_json()) for (d, p) in self._players})
+            file.write(players)
+
+    async def _load(self):
+        with open(self._save_path, "r") as file:
+            content = json.loads(file)
+            for id, status in content:
+                guild = await self._client.fetch_guild(status["guild"])
+                mem = await guild.fetch_member(status["member"])
+                vc = None
+                if status["channel"]:
+                    for chan in guild.voice_channels:
+                        if chan.id == status["channel"]:
+                            vc = chan
+                tags = {(Btag(tag), True) for tag in status["btag"]}
+                player = PUGPlayerStatus(mem, vc, tags)
+                player.is_registered = status["is_registered"]
 
     def is_registered(self, did: int) -> bool:
         player = self.get(did)
@@ -61,6 +102,7 @@ class PUGPlayerDB:
         player = self.get(did)
         assert(player)
         player.add_btag(btag)
+        self._save()
 
     async def register(self, did: int,
                        channel: Optional[discord.VoiceChannel]=None):
@@ -80,3 +122,4 @@ class PUGPlayerDB:
         await self._client.send_link_dm(player.member,
                                         player.channel,
                                         lobby_name)
+        self._save()

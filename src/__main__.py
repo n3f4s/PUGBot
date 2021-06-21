@@ -14,7 +14,7 @@ async def main():
             server.main(queue, host, port=port)
         )
     else:
-        client = bot.MyClient(queue)
+        client = await bot.MyClient.make(queue)
         await asyncio.gather(
             server.main(queue, host, port=port),
             client.start(os.environ['DISCORD_BOT_TOKEN'])

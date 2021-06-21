@@ -52,7 +52,6 @@ class MyClient(discord.Client):
         from cmd_config import CmdConfigBot, CmdConfigPrint
         from commands import Command
         from voice_channel_manager import VoiceChannelManager
-        from pug_player_db import PUGPlayerDB
         super().__init__()
         self._vc_mgr = VoiceChannelManager(self)
         self.logger = logging.getLogger("Bot")
@@ -74,8 +73,17 @@ class MyClient(discord.Client):
                                                 Union[discord.Member,
                                                       discord.User]],
                                                Awaitable[bool]]] = {}
+        self.players = None
 
-        self.players = PUGPlayerDB(self)
+    async def _make_player_db(self):
+        from pug_player_db import PUGPlayerDB
+        self.players = await PUGPlayerDB.make(self)
+
+    @classmethod
+    async def make(cls, ref: asyncio.Queue):
+        client = MyClient(ref)
+        await client._make_player_db()
+        return client
 
     @property
     def all_vc(self):
@@ -178,6 +186,7 @@ class MyClient(discord.Client):
                 btag = Btag(content)
                 if await check_btag_exists(btag):
                     self.logger.debug("Adding btag %s", btag.to_string())
+                    assert(self.players)
                     await self.players.add_btag(did, btag)
                     await self.players.register(did)
                 else:
@@ -208,6 +217,7 @@ class MyClient(discord.Client):
         - If has status and not is_registered, re-send DM
         """
         before_id = before.voice_chan
+        assert(self.players)
         self.logger.info("%s moved from %s to %s",
                          mem.display_name,
                          before_id.name if before_id else "No VC",

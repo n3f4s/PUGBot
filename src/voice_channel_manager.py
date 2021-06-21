@@ -12,6 +12,7 @@ class VoiceChannelManager():
 
     async def on_leaving_lobby(self, mem: discord.Member, lobby: Union[pug_vc.Team, pug_vc.Lobby]):
         """Called when disconnecting from any VC (team or lobby)"""
+        assert(self._client.players)
         player = self._client.players.get(mem.id)
         if player:
             self._client.logger.info("%s left a PUG lobby", mem.display_name)
@@ -50,6 +51,7 @@ class VoiceChannelManager():
 
 
         if isinstance(after, pug_vc.Lobby):
+            assert(self._client.players)
             await self._client.players.register(mem.id, after.voice_chan)
         else:
             channel_id = self._client.invert_lobby_lookup[after.voice_chan.guild.id][after.voice_chan.id]
@@ -58,6 +60,7 @@ class VoiceChannelManager():
                 if chan.id == channel_id:
                     channel = chan
             assert(channel)
+            assert(self._client.players)
             await self._client.players.register(mem.id, channel)
 
     async def on_back_lobby(self, mem: discord.Member,
