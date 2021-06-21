@@ -5,30 +5,21 @@ and what will be imported to run it
 
 import sys
 import logging
-from typing import Dict, List, Set, Union, Tuple, Callable, Awaitable, Optional
+from typing import Dict, List, Union, Tuple, Callable, Awaitable, Optional
 from collections import OrderedDict
 
-import urllib.request
-import json
 
 import asyncio
 
 import discord
 
-from guildconf import GuildConfig, LobbyVC
+from guildconf import GuildConfig
 from btag import Btag
 
-from messages import PlayerJoined, PlayerLeft
 import helper
 import pug_vc
 
-# TODO:
-# 3- test
-# 4- Handle changing lobbies
-# 5- fault resistance
-# 6- Persistence
-# 7- Config depending on server
-# 8- Actual DB
+from owapi.query import check_btag_exists
 
 
 def _invert_lobby_lookup(config: Dict[int, GuildConfig]) -> Dict[int, Dict[int, int]]:
@@ -177,7 +168,7 @@ class MyClient(discord.Client):
             author = msg.author
             try:
                 btag = Btag(content)
-                if await self._check_btag_exists(btag):
+                if await check_btag_exists(btag):
                     self.logger.debug("Adding btag %s", btag.to_string())
                     await self.players.add_btag(did, btag)
                     await self.players.register(did)
@@ -280,22 +271,3 @@ class MyClient(discord.Client):
     async def on_guild_join(self, guild):
         """Triggered when adding the bot to a guild"""
         self.config[guild.id] = GuildConfig(guild.id, {}, "%")
-
-    async def _check_btag_exists(self, btag: Btag):
-        # https://playoverwatch.com/en-us/career/pc/{}/
-        #TODO: Proper header
-        _hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-                'Accept-Encoding': 'none',
-                'Accept-Language': 'en-US,en;q=0.8',
-                'Connection': 'keep-alive' }
-        try:
-            query = "https://ow-api.com/v1/stats/pc/EU/{}/profile".format(btag.for_api())
-            request = urllib.request.Request(query, None, _hdr)
-            response = urllib.request.urlopen(request)
-            response = response.read()
-        except urllib.error.HTTPError:
-            return False
-        data = json.loads(response.decode('utf-8'))
-        return 'name' in data.keys()

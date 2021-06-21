@@ -5,6 +5,7 @@ import os
 import os.path
 import urllib.request
 import zipfile
+import owapi
 
 
 """
@@ -93,14 +94,10 @@ class CareerDatabase:
             return { "dummyquery": "dummyval3"}
         else:
             try:
-                query = self._apiquery.format(btag.for_api())
-                request = urllib.request.Request(query, None, self._hdr)
-                response = urllib.request.urlopen(request).read()
+                return owapi.query.query_api(btag)
             except urllib.error.HTTPError:
                 return None
-            data = json.loads(response.decode('utf-8'))
-            return data
-        
+
     def _update(self, btag):
         " Query api-server for updated stats "
         pass
