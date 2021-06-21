@@ -161,6 +161,14 @@ class MyClient(discord.Client):
                 return True
         return False
 
+    async def send_link_dm(self, mem: discord.Member,
+                           chan: discord.VoiceChannel, lobby: str):
+        """Send the lobby link to the player"""
+        url = "https://pugs.chocolytech.info/{}/{}".format(chan.guild.id,
+                                                           lobby)
+        dm_chan = await mem.create_dm()
+        await dm_chan.send("lobby URL: {}".format(url))
+
     async def send_registration_dm(self, mem: discord.Member):
         """Send a DM to a player to ask for their btag"""
         async def on_dm_callback(did: int, msg: discord.Message):

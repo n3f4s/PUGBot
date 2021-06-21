@@ -77,3 +77,6 @@ class PUGPlayerDB:
                                                 lobby_name,
                                                 nick=player.member.display_name))
         player.is_registered = True
+        await self._client.send_link_dm(player.member,
+                                        player.channel,
+                                        lobby_name)
